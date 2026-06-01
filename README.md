@@ -1,3 +1,27 @@
+# NumCompute-Stream
+
+A streaming, tree-based machine learning framework built on top of NumCompute.
+Supports incremental learning via partial_fit throughout, so models and
+preprocessors can be updated chunk by chunk as new data arrives.
+
+Built with only NumPy and matplotlib. No scikit-learn, no pandas.
+
+---
+
+## Package structure
+numcompute_stream/
+├── stats.py          incremental mean, variance, histogram
+├── preprocessing.py  StandardScaler, MinMaxScaler, Imputer, OneHotEncoder with partial_fit
+├── metrics.py        accuracy, loss, precision, recall, F1, confusion matrix, rolling window
+├── io.py             CSV loader, chunked reader, array splitter
+├── tree.py           DecisionTreeClassifier with partial_fit
+├── ensemble.py       RandomForestClassifier, BaggingClassifier, EnsembleClassifier
+├── pipeline.py       Pipeline with partial_fit chaining
+├── stream.py         StreamTrainer for chunk-by-chunk training and logging
+└── visualise.py      metric plots, model comparison, confusion matrix heatmap
+
+---
+
 ## Installation
 
 Clone the repo and install in editable mode:
