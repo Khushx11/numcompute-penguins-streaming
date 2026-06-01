@@ -1,83 +1,99 @@
+"""
+tests for numcompute_stream/metrics.py
+"""
+
 import numpy as np
 import pytest
-from numcompute.metrics import accuracy, f1, roc_auc, precision, recall, mse, confusion_matrix
+from numcompute_stream.metrics import (
+    AccuracyTracker,
+    LossTracker,
+    ClassificationReport,
+    ConfusionMatrixTracker,
+    RollingAccuracy,
+)
 
 
-def test_accuracy_basic():
-    y_true = np.array([0, 1, 1, 0])
-    y_pred = np.array([0, 1, 0, 0])
-    assert accuracy(y_true, y_pred) == 0.75
+def test_accuracy_tracker_perfect():
+    at = AccuracyTracker()
+    at.update([0, 1, 2], [0, 1, 2])
+    assert at.result() == 1.0
 
 
-def test_accuracy_all_correct():
-    y_true = np.array([1, 2, 3])
-    y_pred = np.array([1, 2, 3])
-    assert accuracy(y_true, y_pred) == 1.0
+def test_accuracy_tracker_incremental():
+    at = AccuracyTracker()
+    at.update([0, 1], [0, 1])
+    at.update([0, 1], [1, 0])
+    assert abs(at.result() - 0.5) < 1e-9
 
 
-def test_accuracy_length_mismatch():
+def test_accuracy_tracker_shape_mismatch():
+    at = AccuracyTracker()
     with pytest.raises(ValueError):
-        accuracy(np.array([1, 2]), np.array([1]))
+        at.update([0, 1], [0])
 
 
-def test_accuracy_empty():
-    with pytest.raises(ValueError):
-        accuracy(np.array([]), np.array([]))
+def test_accuracy_tracker_reset():
+    at = AccuracyTracker()
+    at.update([0, 1], [0, 1])
+    at.reset()
+    assert at.result() == 0.0
+    assert at.total == 0
 
 
-def test_f1_binary():
-    y_true = np.array([0, 1, 1, 0, 1])
-    y_pred = np.array([0, 1, 0, 0, 1])
-    assert np.isclose(f1(y_true, y_pred), 0.8)
+def test_loss_tracker_zero_loss():
+    lt = LossTracker()
+    lt.update([1.0, 2.0], [1.0, 2.0])
+    assert lt.result() == 0.0
 
 
-def test_f1_macro():
-    y_true = np.array([0, 1, 1, 0])
-    y_pred = np.array([0, 1, 0, 0])
-    assert np.isclose(f1(y_true, y_pred, average="macro"), 0.7333333333333334)
+def test_loss_tracker_incremental():
+    lt = LossTracker()
+    lt.update([0.0], [1.0])
+    lt.update([0.0], [1.0])
+    assert abs(lt.result() - 1.0) < 1e-9
 
 
-def test_f1_invalid_average():
-    with pytest.raises(ValueError):
-        f1(np.array([0, 1]), np.array([0, 1]), average="weighted")
+def test_classification_report_macro_f1():
+    cr = ClassificationReport()
+    cr.update([0, 1, 0, 1], [0, 1, 0, 1])
+    result = cr.result()
+    assert abs(result["macro_f1"] - 1.0) < 1e-9
 
 
-def test_roc_auc_basic():
-    y_true = np.array([0, 0, 1, 1])
-    y_score = np.array([0.1, 0.4, 0.35, 0.8])
-    assert np.isclose(roc_auc(y_true, y_score), 0.75)
+def test_classification_report_incremental():
+    cr = ClassificationReport()
+    cr.update([0, 1], [0, 1])
+    cr.update([0, 1], [1, 0])
+    result = cr.result()
+    assert "macro_f1" in result
 
 
-def test_roc_auc_invalid_classes():
-    with pytest.raises(ValueError):
-        roc_auc(np.array([0, 0, 0]), np.array([0.1, 0.2, 0.3]))
+def test_confusion_matrix_tracker_shape():
+    cmt = ConfusionMatrixTracker()
+    cmt.update([0, 1, 2], [0, 1, 2])
+    result = cmt.result()
+    assert result["matrix"].shape == (3, 3)
 
 
-def test_roc_auc_length_mismatch():
-    with pytest.raises(ValueError):
-        roc_auc(np.array([0, 1]), np.array([0.2]))  
+def test_confusion_matrix_tracker_accumulates():
+    cmt = ConfusionMatrixTracker()
+    cmt.update([0, 1], [0, 1])
+    cmt.update([0, 1], [0, 1])
+    result = cmt.result()
+    assert result["matrix"].sum() == 4
 
 
-def test_precision_basic():
-    y_true = np.array([0, 1, 1, 0])
-    y_pred = np.array([0, 1, 0, 0])
-    assert np.isclose(precision(y_true, y_pred), 1.0)
+def test_rolling_accuracy_window():
+    ra = RollingAccuracy(window=2)
+    ra.update([0, 1], [0, 1])  # acc 1.0
+    ra.update([0, 1], [1, 0])  # acc 0.0
+    ra.update([0, 1], [0, 1])  # acc 1.0, first chunk drops out
+    # window now has chunk2 (0.0) and chunk3 (1.0) = 0.5
+    assert abs(ra.result() - 0.5) < 1e-9
 
 
-def test_recall_basic():
-    y_true = np.array([0, 1, 1, 0])
-    y_pred = np.array([0, 1, 0, 0])
-    assert np.isclose(recall(y_true, y_pred), 0.5)
-
-
-def test_mse_basic():
-    y_true = np.array([1.0, 2.0, 3.0])
-    y_pred = np.array([1.0, 2.0, 2.0])
-    assert np.isclose(mse(y_true, y_pred), 1.0 / 3.0)
-
-
-def test_confusion_matrix_basic():
-    y_true = np.array([0, 1, 0, 1, 2])
-    y_pred = np.array([0, 1, 1, 1, 2])
-    cm = confusion_matrix(y_true, y_pred)
-    assert np.array_equal(cm, np.array([[1, 1, 0], [0, 2, 0], [0, 0, 1]]))
+def test_rolling_accuracy_reset():
+    ra = RollingAccuracy(window=3)
+    ra.update([0, 1], [0, 1])
+    ra.reset()
+    assert ra.result() == 0.0

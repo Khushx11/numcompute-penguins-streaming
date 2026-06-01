@@ -1,120 +1,109 @@
+"""
+tests for numcompute_stream/preprocessing.py
+"""
+
 import numpy as np
 import pytest
-from numcompute.preprocessing import StandardScaler, MinMaxScaler, Imputer, OneHotEncoder
+from numcompute_stream.preprocessing import (
+    StandardScaler,
+    MinMaxScaler,
+    Imputer,
+    OneHotEncoder,
+)
 
 
-X = np.array([[1.0, 2.0],
-              [3.0, 4.0],
-              [5.0, 6.0]])
+def test_standard_scaler_basic():
+    sc = StandardScaler()
+    X = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+    sc.partial_fit(X)
+    Xt = sc.transform(X)
+    assert abs(Xt.mean(axis=0)).max() < 1e-9
 
 
-def test_standard_scaler_mean_is_zero():
-    ss = StandardScaler()
-    out = ss.fit_transform(X)
-    assert np.allclose(out.mean(axis=0), 0.0)
+def test_standard_scaler_incremental():
+    sc = StandardScaler()
+    X1 = np.array([[1.0, 2.0], [3.0, 4.0]])
+    X2 = np.array([[5.0, 6.0], [7.0, 8.0]])
+    sc.partial_fit(X1)
+    sc.partial_fit(X2)
+    assert sc.fitted_
 
-def test_standard_scaler_std_is_one():
-    ss = StandardScaler()
-    out = ss.fit_transform(X)
-    assert np.allclose(out.std(axis=0), 1.0)
 
-def test_standard_scaler_inverse():
-    ss = StandardScaler()
-    out = ss.fit_transform(X)
-    assert np.allclose(ss.inverse_transform(out), X)
+def test_standard_scaler_zero_variance():
+    sc = StandardScaler()
+    X = np.ones((5, 2))
+    sc.partial_fit(X)
+    Xt = sc.transform(X)
+    # zero variance columns should not produce NaN
+    assert not np.isnan(Xt).any()
 
-def test_standard_scaler_not_fitted():
+
+def test_standard_scaler_not_fitted_raises():
+    sc = StandardScaler()
     with pytest.raises(RuntimeError):
-        StandardScaler().transform(X)
-
-def test_standard_scaler_non_2d():
-    with pytest.raises(ValueError):
-        StandardScaler().fit(np.array([1.0, 2.0, 3.0]))
-
+        sc.transform(np.ones((3, 2)))
 
 
 def test_minmax_scaler_range():
-    mm = MinMaxScaler()
-    out = mm.fit_transform(X)
-    assert np.allclose(out.min(axis=0), 0.0)
-    assert np.allclose(out.max(axis=0), 1.0)
-
-def test_minmax_scaler_custom_range():
-    mm = MinMaxScaler(feature_range=(-1, 1))
-    out = mm.fit_transform(X)
-    assert np.allclose(out.min(axis=0), -1.0)
-    assert np.allclose(out.max(axis=0), 1.0)
-
-def test_minmax_scaler_inverse():
-    mm = MinMaxScaler()
-    out = mm.fit_transform(X)
-    assert np.allclose(mm.inverse_transform(out), X)
-
-def test_minmax_scaler_invalid_range():
-    with pytest.raises(ValueError):
-        MinMaxScaler(feature_range=(1, 0))
-
-def test_minmax_scaler_not_fitted():
-    with pytest.raises(RuntimeError):
-        MinMaxScaler().transform(X)
+    sc = MinMaxScaler()
+    X = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+    sc.partial_fit(X)
+    Xt = sc.transform(X)
+    assert Xt.min() >= 0.0
+    assert Xt.max() <= 1.0
 
 
-def test_imputer_mean():
-    X_miss = np.array([[1.0, np.nan],
-                       [3.0, 4.0],
-                       [np.nan, 6.0]])
+def test_minmax_scaler_incremental_expands_range():
+    sc = MinMaxScaler()
+    sc.partial_fit(np.array([[1.0], [2.0]]))
+    sc.partial_fit(np.array([[0.0], [3.0]]))
+    assert sc.min_[0] == 0.0
+    assert sc.max_[0] == 3.0
+
+
+def test_imputer_mean_fills_nan():
     imp = Imputer(strategy="mean")
-    out = imp.fit_transform(X_miss)
-    assert not np.any(np.isnan(out))
-    assert np.allclose(out[0, 1], 5.0)
-    assert np.allclose(out[2, 0], 2.0)
+    X = np.array([[1.0, np.nan], [3.0, 4.0]])
+    imp.partial_fit(X)
+    Xt = imp.transform(X)
+    assert not np.isnan(Xt).any()
 
-def test_imputer_median():
-    X_miss = np.array([[1.0, np.nan],
-                       [3.0, 4.0],
-                       [5.0, 6.0]])
-    imp = Imputer(strategy="median")
-    out = imp.fit_transform(X_miss)
-    assert np.allclose(out[0, 1], 5.0)
 
-def test_imputer_constant():
-    X_miss = np.array([[np.nan, 2.0],
-                       [3.0, 4.0]])
+def test_imputer_constant_fill():
     imp = Imputer(strategy="constant")
-    out = imp.fit_transform(X_miss, constant=-1.0)
-    assert np.allclose(out[0, 0], -1.0)
-
-def test_imputer_invalid_strategy():
-    with pytest.raises(ValueError):
-        Imputer(strategy="mode")
-
-def test_imputer_not_fitted():
-    with pytest.raises(RuntimeError):
-        Imputer().transform(X)
+    X = np.array([[np.nan, 2.0], [3.0, np.nan]])
+    imp.partial_fit(X, constant=-1.0)
+    Xt = imp.transform(X)
+    assert Xt[0, 0] == -1.0
+    assert Xt[1, 1] == -1.0
 
 
-def test_one_hot_shape():
-    y = np.array([0, 1, 2, 1, 0])
+def test_imputer_no_nans_unchanged():
+    imp = Imputer(strategy="mean")
+    X = np.array([[1.0, 2.0], [3.0, 4.0]])
+    imp.partial_fit(X)
+    Xt = imp.transform(X)
+    np.testing.assert_array_equal(X, Xt)
+
+
+def test_one_hot_encoder_basic():
     enc = OneHotEncoder()
-    out = enc.fit_transform(y)
-    assert out.shape == (5, 3)
+    enc.partial_fit([0, 1, 2])
+    out = enc.transform([0, 1, 2])
+    assert out.shape == (3, 3)
+    assert out.sum() == 3.0
 
-def test_one_hot_values():
-    y = np.array([0, 1, 2])
+
+def test_one_hot_encoder_incremental_categories():
     enc = OneHotEncoder()
-    out = enc.fit_transform(y)
-    assert np.allclose(out, np.eye(3))
+    enc.partial_fit([0, 1])
+    enc.partial_fit([2, 3])
+    assert len(enc.categories_) == 4
 
-def test_one_hot_inverse():
-    y = np.array([0, 1, 2, 1, 0])
+
+def test_one_hot_encoder_inverse():
     enc = OneHotEncoder()
-    out = enc.fit_transform(y)
-    assert np.array_equal(enc.inverse_transform(out), y)
-
-def test_one_hot_not_fitted():
-    with pytest.raises(RuntimeError):
-        OneHotEncoder().transform(np.array([0, 1]))
-
-def test_one_hot_non_1d():
-    with pytest.raises(ValueError):
-        OneHotEncoder().fit(np.array([[0, 1], [2, 3]]))
+    enc.partial_fit([0, 1, 2])
+    out = enc.transform([0, 1, 2])
+    back = enc.inverse_transform(out)
+    np.testing.assert_array_equal(back, [0, 1, 2])
