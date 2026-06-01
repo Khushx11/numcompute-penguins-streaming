@@ -1,75 +1,135 @@
-# NumCompute
-
-A modular, production-grade scientific computing toolkit built with plain Python and NumPy. No external ML/DL libraries.
-
 ## Installation
 
+Clone the repo and install in editable mode:
+
 ```bash
-pip install -e ".[dev]"
+git clone https://github.com/Khushx11/NumCompute-Stream.git
+cd NumCompute-Stream
+pip install -e .
 ```
 
-## Modules
+Requires Python 3.10+ and NumPy and matplotlib.
 
-| Module | Description |
-|---|---|
-| `io` | Streaming CSV reader with dtype inference and chunking |
-| `preprocessing` | StandardScaler, MinMaxScaler, Imputer, OneHotEncoder |
-| `sort_search` | Vectorised sorts, top-k, quickselect, binary search |
-| `rank` | Ranking with tie strategies, percentile ranks |
-| `stats` | Welford streaming stats, histograms, quantiles |
-| `metrics` | Accuracy, Precision, Recall, F1, MSE, ROC/AUC, confusion matrix |
-| `optim` | Finite-difference gradients, Jacobians, line search |
-| `pipeline` | Transformer/Estimator API, Compose, FeatureUnion |
-| `utils` | Distances, activations, logsumexp, batching helpers |
-| `benchmarking` | Micro-benchmark harness, vectorised vs loop comparisons |
+---
 
-## Quick Start
+## Quick start
 
 ```python
 import numpy as np
-from numcompute.preprocessing import StandardScaler
-from numcompute.pipeline import Compose
+from numcompute_stream.io import make_stream_chunks
+from numcompute_stream.preprocessing import StandardScaler
+from numcompute_stream.ensemble import RandomForestClassifier
+from numcompute_stream.pipeline import Pipeline
+from numcompute_stream.stream import StreamTrainer
+import numcompute_stream.visualise as vis
 
-scaler = StandardScaler()
-X = np.random.randn(100, 4)
-X_scaled = scaler.fit_transform(X)
+# some data
+rng = np.random.default_rng(0)
+X = rng.normal(size=(200, 4))
+y = (X[:, 0] + X[:, 1] > 0).astype(int)
+
+# split into streaming chunks
+chunks = make_stream_chunks(X, y, chunk_size=20)
+
+# build a pipeline
+pipe = Pipeline([
+    ('scale', StandardScaler()),
+    ('model', RandomForestClassifier(n_estimators=10, max_depth=4, random_state=0)),
+])
+
+# train incrementally
+trainer = StreamTrainer(pipe, classes=[0, 1])
+trainer.run(chunks)
+trainer.summary()
+
+# visualise accuracy over time
+vis.plot_metric_over_time(
+    trainer.cumulative_accuracy_history(),
+    title='Cumulative accuracy over chunks',
+    ylabel='accuracy'
+)
 ```
 
-## Running Tests
+---
+
+## Streaming API
+
+Every component follows the same pattern:
+
+| method | what it does |
+|---|---|
+| `partial_fit(X, y)` | update with one chunk, safe to call repeatedly |
+| `fit(X, y)` | full fit on a single dataset, resets state |
+| `transform(X)` | apply fitted transform |
+| `predict(X)` | predict class labels |
+| `predict_proba(X)` | class probability estimates |
+
+---
+
+## Running the demo
 
 ```bash
-pytest tests/ -v --cov=numcompute
+cd demo
+jupyter notebook stream_demo.ipynb
 ```
 
-## Benchmarks
+The notebook loads penguins.csv, splits it into chunks, trains a decision
+tree, random forest, and bagging ensemble incrementally, then plots accuracy
+over time and a confusion matrix.
+
+---
+
+## Running the tests
+
+From the repo root:
+
+```bash
+pip install pytest
+pytest tests/ -v
+```
+
+There are 40+ unit tests covering standard functionality and edge cases
+including NaN inputs, zero-variance features, single-sample chunks,
+rolling window metrics, and streaming category expansion.
+
+---
+
+## Running the benchmarks
 
 ```bash
 python benchmark/run_benchmarks.py
 ```
 
-## Performance Table
+Runs four benchmarks:
+1. NaN imputation: loop vs vectorised
+2. Confusion matrix: loop vs vectorised
+3. Single tree vs random forest vs bagging under streaming
+4. StandardScaler partial_fit cost as data accumulates
 
------------------------------------------------------------------
-| Operation             | Vectorised (ms) | Loop (ms)  | Speedup |
-|-----------------------|-----------------|------------|---------|
-| Sort n=100k           | 5573.2          | 125.4      | 0.02  x |
-| Top-k n=100k          | 4615.6          | 82.8       | 0.02  x |
-| StandardScaler n=100k | 29.2            | 1092.7     | 37.42 x |
-| Pairwise L2 n=1k      | 18.2            | 9208.3     | 505.71x |
------------------------------------------------------------------
+---
 
-*(Populated after running `benchmark/run_benchmarks.py`)*
+## Design notes
 
-## Requirements
+**Streaming approach:** All stateful components buffer data or maintain
+running statistics so partial_fit can be called any number of times.
+The decision tree rebuilds from the full accumulated buffer on each
+partial_fit call. This is simpler and more correct than true online
+tree growth algorithms while still demonstrating incremental learning.
 
-- Python >= 3.10
-- NumPy >= 1.26
+**Numerical stability:** NaNs are dropped before Welford updates.
+Zero-variance features default to std=1 to avoid division by zero.
+Histogram bin edges handle the case where all values are identical.
 
-## Team
+**Ensemble methods:** RandomForest adds feature subsampling per split
+on top of bootstrap sampling. BaggingClassifier uses bootstrap sampling
+only. EnsembleClassifier wraps both with a shared interface so you can
+swap methods without changing the rest of the pipeline.
 
-| Name | GitHub | Modules |
-|---|---|---|
-| Jaineel Patel | [@jaineel11](https://github.com/jaineel11) | `utils.py`, `io.py` |
-| Harshal Lad | [@Harshal192](https://github.com/Harshal192) | `preprocessing.py`, `pipeline.py` |
-| Khush Maru | [@Khushx11](https://github.com/Khushx11) | `sort_search.py`, `rank.py`|
-| Vaibhav Patel | [@vaibhavpatel26](https://github.com/vaibhavpatel26) | `stats.py`, `metrics.py`, `optim.py`, `benchmarking.py` |
+---
+
+## Author
+
+Khush Bhavin Maru
+Student ID: a[redacted]
+University of Adelaide
+Course: Programming for AI
