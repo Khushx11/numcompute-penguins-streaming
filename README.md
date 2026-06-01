@@ -1,30 +1,31 @@
 # NumCompute-Stream
 
-A streaming, tree-based machine learning framework built on top of NumCompute.
-Supports incremental learning via partial_fit throughout, so models and
-preprocessors can be updated chunk by chunk as new data arrives.
+Streaming, tree-based machine learning built from scratch using NumPy only.
 
-Built with only NumPy and matplotlib. No scikit-learn, no pandas.
+This extends the base NumCompute package with real incremental learning. Every
+component accepts data chunk by chunk through partial_fit(), so models keep
+updating as new data arrives without ever needing the full dataset loaded at once.
+No scikit-learn, no pandas, no shortcuts.
 
 ---
 
-## Package structure
-numcompute_stream/
-├── stats.py          incremental mean, variance, histogram
-├── preprocessing.py  StandardScaler, MinMaxScaler, Imputer, OneHotEncoder with partial_fit
-├── metrics.py        accuracy, loss, precision, recall, F1, confusion matrix, rolling window
-├── io.py             CSV loader, chunked reader, array splitter
-├── tree.py           DecisionTreeClassifier with partial_fit
-├── ensemble.py       RandomForestClassifier, BaggingClassifier, EnsembleClassifier
-├── pipeline.py       Pipeline with partial_fit chaining
-├── stream.py         StreamTrainer for chunk-by-chunk training and logging
-└── visualise.py      metric plots, model comparison, confusion matrix heatmap
+## What is in the box
+
+| module | what it does |
+|---|---|
+| `stats.py` | Welford running mean/variance, streaming histogram, quantiles |
+| `preprocessing.py` | StandardScaler, MinMaxScaler, Imputer, OneHotEncoder with partial_fit |
+| `metrics.py` | Accuracy, loss, precision, recall, F1, confusion matrix, rolling window |
+| `io.py` | CSV loader, chunked reader, in-memory stream splitter |
+| `tree.py` | Decision tree classifier with Gini/entropy and partial_fit |
+| `ensemble.py` | Random Forest, Bagging, and a unified EnsembleClassifier wrapper |
+| `pipeline.py` | Pipeline with partial_fit chaining across all steps |
+| `stream.py` | StreamTrainer for the chunk loop, metric logging, and timing |
+| `visualise.py` | Metric plots, model comparison, confusion matrix heatmap |
 
 ---
 
 ## Installation
-
-Clone the repo and install in editable mode:
 
 ```bash
 git clone https://github.com/Khushx11/NumCompute-Stream.git
@@ -32,7 +33,7 @@ cd NumCompute-Stream
 pip install -e .
 ```
 
-Requires Python 3.10+ and NumPy and matplotlib.
+Python 3.10+, NumPy, and matplotlib. That is all.
 
 ---
 
@@ -47,46 +48,42 @@ from numcompute_stream.pipeline import Pipeline
 from numcompute_stream.stream import StreamTrainer
 import numcompute_stream.visualise as vis
 
-# some data
 rng = np.random.default_rng(0)
 X = rng.normal(size=(200, 4))
 y = (X[:, 0] + X[:, 1] > 0).astype(int)
 
-# split into streaming chunks
 chunks = make_stream_chunks(X, y, chunk_size=20)
 
-# build a pipeline
 pipe = Pipeline([
     ('scale', StandardScaler()),
     ('model', RandomForestClassifier(n_estimators=10, max_depth=4, random_state=0)),
 ])
 
-# train incrementally
 trainer = StreamTrainer(pipe, classes=[0, 1])
 trainer.run(chunks)
 trainer.summary()
 
-# visualise accuracy over time
 vis.plot_metric_over_time(
     trainer.cumulative_accuracy_history(),
     title='Cumulative accuracy over chunks',
-    ylabel='accuracy'
+    ylabel='accuracy',
 )
 ```
 
 ---
 
-## Streaming API
+## The streaming API
 
-Every component follows the same pattern:
+Every component follows the same interface so pieces are interchangeable
+without rewriting anything around them:
 
-| method | what it does |
-|---|---|
-| `partial_fit(X, y)` | update with one chunk, safe to call repeatedly |
-| `fit(X, y)` | full fit on a single dataset, resets state |
-| `transform(X)` | apply fitted transform |
-| `predict(X)` | predict class labels |
-| `predict_proba(X)` | class probability estimates |
+```
+partial_fit(X, y)   update with one chunk, call as many times as needed
+fit(X, y)           full fit on a single dataset, clears previous state
+transform(X)        apply fitted transform to new data
+predict(X)          predict class labels
+predict_proba(X)    class probability estimates
+```
 
 ---
 
@@ -97,24 +94,23 @@ cd demo
 jupyter notebook stream_demo.ipynb
 ```
 
-The notebook loads penguins.csv, splits it into chunks, trains a decision
-tree, random forest, and bagging ensemble incrementally, then plots accuracy
-over time and a confusion matrix.
+The notebook loads penguins.csv, splits it into 10-sample chunks, and trains
+a decision tree, random forest, and bagging ensemble side by side. Plots
+include cumulative accuracy over time, loss, a model comparison, predictions
+vs ground truth on the last chunk, and a full confusion matrix.
 
 ---
 
 ## Running the tests
 
-From the repo root:
-
 ```bash
-pip install pytest
 pytest tests/ -v
 ```
 
-There are 40+ unit tests covering standard functionality and edge cases
-including NaN inputs, zero-variance features, single-sample chunks,
-rolling window metrics, and streaming category expansion.
+177 tests across five files. Normal cases and edge cases both: NaN inputs,
+zero-variance features, single-sample chunks, rolling window accuracy,
+incremental category expansion in the encoder, shape mismatches, and
+calling predict before fit.
 
 ---
 
@@ -124,36 +120,52 @@ rolling window metrics, and streaming category expansion.
 python benchmark/run_benchmarks.py
 ```
 
-Runs four benchmarks:
-1. NaN imputation: loop vs vectorised
-2. Confusion matrix: loop vs vectorised
-3. Single tree vs random forest vs bagging under streaming
-4. StandardScaler partial_fit cost as data accumulates
+Four comparisons: loop vs vectorised NaN imputation, loop vs vectorised
+confusion matrix building, single tree vs Random Forest vs Bagging over
+streaming chunks, and StandardScaler partial_fit cost as chunk count grows.
 
 ---
 
 ## Design notes
 
-**Streaming approach:** All stateful components buffer data or maintain
-running statistics so partial_fit can be called any number of times.
-The decision tree rebuilds from the full accumulated buffer on each
-partial_fit call. This is simpler and more correct than true online
-tree growth algorithms while still demonstrating incremental learning.
+The tree uses a rebuild-from-buffer strategy rather than a proper online
+algorithm like Hoeffding trees. Each partial_fit call adds the new chunk
+to an internal buffer and rebuilds the whole tree from scratch. Hoeffding
+trees handle truly unbounded streams more efficiently but the statistical
+bounds they rely on are hard to implement correctly and even harder to
+write good tests for. The rebuild approach trades memory efficiency for
+simplicity and correctness, and the benchmark shows exactly how the cost
+grows so there are no surprises.
 
-**Numerical stability:** NaNs are dropped before Welford updates.
-Zero-variance features default to std=1 to avoid division by zero.
-Histogram bin edges handle the case where all values are identical.
+Running mean and variance use Welford's algorithm throughout stats.py and
+preprocessing.py. It runs in O(1) per sample, stores nothing from previous
+chunks, and stays numerically stable where a naive sum-of-squares would
+drift on large inputs.
 
-**Ensemble methods:** RandomForest adds feature subsampling per split
-on top of bootstrap sampling. BaggingClassifier uses bootstrap sampling
-only. EnsembleClassifier wraps both with a shared interface so you can
-swap methods without changing the rest of the pipeline.
+Random Forest and Bagging share the same EnsembleClassifier interface so
+switching between them is a single constructor argument. The only real
+difference is feature subsampling at each split: Random Forest does it,
+Bagging does not.
+
+---
+
+## Repo layout
+
+```
+NumCompute-Stream/
+├── numcompute_stream/   core package (9 modules)
+├── numcompute/          base NumCompute package
+├── tests/               177 unit tests
+├── demo/                stream_demo.ipynb + penguins.csv
+├── benchmark/           run_benchmarks.py
+├── report/              report.pdf
+└── README.md
+```
 
 ---
 
 ## Author
 
-Khush Bhavin Maru
-Student ID: a[redacted]
+Khush Bhavin Maru (a[redacted])
 University of Adelaide
-Course: Programming for AI
+Programming for Artificial Intelligence — COMP 5004
