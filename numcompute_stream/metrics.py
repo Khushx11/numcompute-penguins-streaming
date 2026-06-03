@@ -375,3 +375,89 @@ class RollingAccuracy:
         self._buffer = []
         self.history = []
         return self
+
+
+class StreamingAUC:
+    """
+    Approximate AUC for binary classification tracked across streaming chunks.
+
+    Uses the Mann-Whitney U statistic approximation. Accumulates positive
+    and negative score lists across chunks and recomputes AUC on demand.
+    Not memory-free but gives exact AUC for all data seen so far.
+
+    Attributes
+    ----------
+    pos_scores : list
+        Predicted scores for positive class samples seen so far.
+    neg_scores : list
+        Predicted scores for negative class samples seen so far.
+    history : list of float
+        AUC after each chunk.
+    """
+
+    def __init__(self):
+        self.pos_scores = []
+        self.neg_scores = []
+        self.history = []
+
+    def update(self, y_true, y_scores, pos_label=1):
+        """
+        Add predictions from a new chunk.
+
+        Parameters
+        ----------
+        y_true : array-like, shape (n,)
+            True binary labels.
+        y_scores : array-like, shape (n,)
+            Predicted scores or probabilities for the positive class.
+        pos_label : int, default 1
+            Which label counts as positive.
+
+        Returns
+        -------
+        self
+        """
+        y_true = np.asarray(y_true)
+        y_scores = np.asarray(y_scores, dtype=float)
+        if y_true.shape != y_scores.shape:
+            raise ValueError(
+                f"shape mismatch: y_true {y_true.shape} vs y_scores {y_scores.shape}"
+            )
+        pos_mask = y_true == pos_label
+        self.pos_scores.extend(y_scores[pos_mask].tolist())
+        self.neg_scores.extend(y_scores[~pos_mask].tolist())
+        self.history.append(self.result())
+        return self
+
+    def result(self):
+        """
+        Current AUC over all data seen so far.
+
+        Uses the Mann-Whitney U formulation: AUC = U / (n_pos * n_neg)
+        where U counts the number of (pos, neg) pairs where the positive
+        score is higher.
+
+        Returns
+        -------
+        float, or 0.5 if not enough data yet.
+        """
+        if len(self.pos_scores) == 0 or len(self.neg_scores) == 0:
+            return 0.5
+
+        pos = np.asarray(self.pos_scores)
+        neg = np.asarray(self.neg_scores)
+        n_pos = len(pos)
+        n_neg = len(neg)
+
+        # vectorised U statistic: for each pos score count neg scores below it
+        # pos[:, None] > neg[None, :] gives an (n_pos, n_neg) boolean matrix
+        U = float(np.sum(pos[:, None] > neg[None, :]))
+        U += 0.5 * float(np.sum(pos[:, None] == neg[None, :]))
+        return U / (n_pos * n_neg)
+
+    def reset(self):
+        """Clear all accumulated scores."""
+        self.pos_scores = []
+        self.neg_scores = []
+        self.history = []
+        return self

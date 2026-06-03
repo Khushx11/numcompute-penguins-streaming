@@ -306,3 +306,91 @@ def streaming_quantiles(sorted_buffer, q):
         results.append(data[lo] * (1 - frac) + data[hi] * frac)
 
     return float(results[0]) if q.ndim == 0 else np.array(results)
+
+
+class EMAStats:
+    """
+    Exponential moving average for mean and variance.
+
+    Unlike Welford which weights all past samples equally, EMA gives
+    more weight to recent data. This makes it better for non-stationary
+    streams where the underlying distribution shifts over time.
+
+    Parameters
+    ----------
+    alpha : float, default 0.1
+        Smoothing factor between 0 and 1. Higher alpha means more weight
+        on recent chunks and faster forgetting of old data.
+
+    Attributes
+    ----------
+    mean_ : float or None
+    variance_ : float or None
+    fitted_ : bool
+    """
+
+    def __init__(self, alpha=0.1):
+        if not 0 < alpha <= 1:
+            raise ValueError("alpha must be between 0 and 1 exclusive of 0")
+        self.alpha = alpha
+        self.mean_ = None
+        self.variance_ = None
+        self.fitted_ = False
+
+    def update_stats(self, X_chunk):
+        """
+        Update EMA mean and variance with a new chunk.
+
+        Uses the chunk mean as the new observation rather than updating
+        sample by sample, which is faster and works well for chunk-based
+        streaming.
+
+        Parameters
+        ----------
+        X_chunk : array-like, shape (n,)
+
+        Returns
+        -------
+        self
+        """
+        X_chunk = np.asarray(X_chunk, dtype=float)
+        X_chunk = X_chunk[~np.isnan(X_chunk)]
+        if len(X_chunk) == 0:
+            return self
+
+        chunk_mean = float(np.mean(X_chunk))
+        chunk_var = float(np.var(X_chunk)) if len(X_chunk) > 1 else 0.0
+
+        if self.mean_ is None:
+            self.mean_ = chunk_mean
+            self.variance_ = chunk_var
+        else:
+            diff = chunk_mean - self.mean_
+            self.mean_ = self.mean_ + self.alpha * diff
+            # update variance using EMA on squared deviation plus chunk variance
+            self.variance_ = (1 - self.alpha) * (self.variance_ + self.alpha * diff ** 2) + self.alpha * chunk_var
+
+        self.fitted_ = True
+        return self
+
+    def std(self):
+        """Current EMA standard deviation."""
+        if self.variance_ is None:
+            return 0.0
+        return float(np.sqrt(max(self.variance_, 0.0)))
+
+    def result(self):
+        """Current EMA mean and variance as a dict."""
+        return {
+            "mean": self.mean_,
+            "variance": self.variance_,
+            "std": self.std(),
+            "alpha": self.alpha,
+        }
+
+    def reset(self):
+        """Reset all state."""
+        self.mean_ = None
+        self.variance_ = None
+        self.fitted_ = False
+        return self

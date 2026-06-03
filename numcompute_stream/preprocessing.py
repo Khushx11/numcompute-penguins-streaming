@@ -394,3 +394,93 @@ class OneHotEncoder:
         if not self.fitted_:
             raise RuntimeError("call partial_fit before inverse_transform")
         return self.categories_[np.argmax(np.asarray(X, dtype=float), axis=1)]
+
+
+class EMAScaler:
+    """
+    Standardises features using exponential moving average statistics
+    instead of a full Welford running mean.
+
+    Better than StandardScaler for non-stationary streams where recent
+    data should count more than data from many chunks ago. The tradeoff
+    is that the statistics forget old data, so the scale can shift over
+    time.
+
+    Parameters
+    ----------
+    alpha : float, default 0.1
+        EMA smoothing factor. Higher means faster adaptation to new data.
+    """
+
+    def __init__(self, alpha=0.1):
+        if not 0 < alpha <= 1:
+            raise ValueError("alpha must be between 0 and 1 exclusive of 0")
+        self.alpha = alpha
+        self.mean_ = None
+        self.var_ = None
+        self.n_features = None
+        self.fitted_ = False
+
+    def partial_fit(self, X):
+        """
+        Update EMA mean and variance estimates with a new chunk.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+
+        Returns
+        -------
+        self
+        """
+        X = np.asarray(X, dtype=float)
+        if X.ndim != 2:
+            raise ValueError(f"X must be 2-D, got shape {X.shape}")
+
+        chunk_mean = np.nanmean(X, axis=0)
+        chunk_var = np.nanvar(X, axis=0)
+        # single-row chunks have no meaningful variance
+        chunk_var = np.where(X.shape[0] > 1, chunk_var, np.zeros_like(chunk_var))
+
+        if self.mean_ is None:
+            self.n_features = X.shape[1]
+            self.mean_ = chunk_mean
+            self.var_ = chunk_var
+        else:
+            if X.shape[1] != self.n_features:
+                raise ValueError(
+                    f"expected {self.n_features} features, got {X.shape[1]}"
+                )
+            diff = chunk_mean - self.mean_
+            self.mean_ = self.mean_ + self.alpha * diff
+            self.var_ = (1 - self.alpha) * (self.var_ + self.alpha * diff ** 2) + self.alpha * chunk_var
+
+        self.fitted_ = True
+        return self
+
+    def fit(self, X):
+        """Full fit on a single batch."""
+        return self.partial_fit(X)
+
+    def transform(self, X):
+        """
+        Standardise X using the current EMA mean and std.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+
+        Returns
+        -------
+        np.ndarray
+        """
+        if not self.fitted_:
+            raise RuntimeError("call partial_fit before transform")
+        X = np.asarray(X, dtype=float)
+        std = np.sqrt(np.maximum(self.var_, 0.0))
+        std[std == 0] = 1.0
+        return (X - self.mean_) / std
+
+    def fit_transform(self, X):
+        """Fit and transform in one step."""
+        return self.partial_fit(X).transform(X)
