@@ -1,9 +1,8 @@
 """
 stats.py
 
-Incremental statistics for streaming data. The idea is that you never
-have all the data at once, so everything here works chunk by chunk.
-Running mean/variance uses Welford's algorithm so we never need to
+Stats you can update chunk by chunk instead of needing all data at once.
+Running mean and variance use Welford's algorithm so we don't need to
 store past values.
 """
 
@@ -12,20 +11,19 @@ import numpy as np
 
 class RunningStats:
     """
-    Running mean and variance for a single feature, updated one chunk
-    at a time using Welford's online algorithm.
+    Running mean and variance for one feature, updated chunk by chunk.
 
-    Just call update_stats() each time new data comes in. No history
-    is stored, just the three running values below.
+    Uses Welford's algorithm so we don't need to store past data.
+    Call update_stats() whenever new data arrives.
 
     Attributes
     ----------
     n : int
-        How many samples we have seen total.
+        Total samples seen so far.
     mean_ : float
         Current running mean.
     M2 : float
-        Sum of squared deviations from the mean so far. Used to get variance.
+        Sum of squared deviations from the mean. Used to compute variance.
     """
 
     def __init__(self):
@@ -35,9 +33,9 @@ class RunningStats:
 
     def update_stats(self, X_chunk):
         """
-        Feed in a new chunk of values and update the running stats.
+        Update running stats with a new chunk of values.
 
-        NaNs are dropped before processing so they don't corrupt the mean.
+        Drops NaNs before processing so they don't mess up the mean.
 
         Parameters
         ----------
@@ -51,7 +49,7 @@ class RunningStats:
         X_chunk = X_chunk[~np.isnan(X_chunk)]
         if len(X_chunk) == 0:
             return self
-        # standard welford update per value
+        # standard welford update for each value
         for x in X_chunk:
             self.n += 1
             delta = x - self.mean_
@@ -62,10 +60,10 @@ class RunningStats:
 
     def variance(self):
         """
-        Population variance of everything seen so far.
+        Population variance of all data seen so far.
 
-        Returns 0.0 if we have less than 2 samples since variance
-        is undefined for a single point.
+        Returns 0.0 if we have fewer than 2 samples since variance
+        doesn't make sense for a single point.
         """
         if self.n < 2:
             return 0.0
@@ -77,7 +75,7 @@ class RunningStats:
 
     def result(self):
         """
-        Snapshot of current stats as a dict.
+        Current stats as a dict.
 
         Returns
         -------
@@ -91,7 +89,7 @@ class RunningStats:
         }
 
     def reset(self):
-        """Wipe everything back to zero so we can start fresh."""
+        """Reset everything to zero."""
         self.n = 0
         self.mean_ = 0.0
         self.M2 = 0.0
@@ -100,17 +98,17 @@ class RunningStats:
 
 class MultiFeatureStats:
     """
-    Same as RunningStats but for 2D data with multiple feature columns.
+    Running stats for multiple feature columns at once.
 
-    One RunningStats tracker per column. Feed chunks of shape
+    Keeps one RunningStats tracker per column. Feed in chunks of shape
     (n_samples, n_features) and it handles the rest.
 
     Attributes
     ----------
     n_features : int or None
-        Figured out from the first chunk.
+        Number of features, figured out from the first chunk.
     trackers : list of RunningStats
-        One per feature column.
+        One tracker per feature column.
     """
 
     def __init__(self):
@@ -179,11 +177,10 @@ class MultiFeatureStats:
 
 class StreamingHistogram:
     """
-    A histogram that you can keep updating as new data arrives.
+    Histogram you can keep updating as new data arrives.
 
-    Bin edges are fixed either from the first chunk or from a manually
-    specified range. After that, new chunks just add counts to the
-    existing bins.
+    Bin edges are fixed either from the first chunk or from a range you
+    specify. After that, new chunks just add counts to the existing bins.
 
     Parameters
     ----------
@@ -204,10 +201,10 @@ class StreamingHistogram:
 
     def update_stats(self, X_chunk):
         """
-        Add new data into the histogram counts.
+        Add new data to the histogram counts.
 
         On the first call, bin edges are set either from range_ or from
-        the min/max of the chunk. Subsequent calls just accumulate counts.
+        the min/max of the chunk. After that, just accumulates counts.
 
         Parameters
         ----------
@@ -268,9 +265,9 @@ def streaming_quantiles(sorted_buffer, q):
     """
     Compute quantiles from a sorted buffer of all values seen so far.
 
-    This keeps an exact result by storing everything sorted. Fine for
-    datasets that fit in memory. For truly huge streams you would want
-    a sketch algorithm, but that is out of scope here.
+    This stores everything sorted to get exact results. Works fine for
+    datasets that fit in memory. For truly huge streams you'd want
+    a sketch algorithm, but that's out of scope here.
 
     Parameters
     ----------
@@ -313,8 +310,8 @@ class EMAStats:
     Exponential moving average for mean and variance.
 
     Unlike Welford which weights all past samples equally, EMA gives
-    more weight to recent data. This makes it better for non-stationary
-    streams where the underlying distribution shifts over time.
+    more weight to recent data. Better for non-stationary streams where
+    the distribution shifts over time.
 
     Parameters
     ----------
@@ -341,7 +338,7 @@ class EMAStats:
         """
         Update EMA mean and variance with a new chunk.
 
-        Uses the chunk mean as the new observation rather than updating
+        Uses the chunk mean as the new observation instead of updating
         sample by sample, which is faster and works well for chunk-based
         streaming.
 

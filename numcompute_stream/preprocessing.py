@@ -1,10 +1,10 @@
 """
 preprocessing.py
 
-Streaming-compatible versions of the scalers and encoders from the
-base NumCompute package. The key difference is partial_fit() support
-so these can be updated incrementally as new chunks of data arrive
-instead of needing the full dataset up front.
+Scalers and encoders that work with streaming data. The main difference
+from the base NumCompute package is partial_fit() support so these can
+update incrementally as new chunks arrive instead of needing all data
+at once.
 """
 
 import numpy as np
@@ -13,11 +13,11 @@ from numcompute_stream.stats import RunningStats
 
 class StandardScaler:
     """
-    Standardises features to zero mean and unit variance, but supports
-    partial_fit() so it can update its statistics chunk by chunk.
+    Standardises features to zero mean and unit variance, with partial_fit()
+    support so it can update statistics chunk by chunk.
 
-    Uses Welford's algorithm internally via RunningStats so the mean
-    and variance stay accurate without storing past data.
+    Uses Welford's algorithm via RunningStats so mean and variance stay
+    accurate without storing past data.
 
     Attributes
     ----------
@@ -38,7 +38,7 @@ class StandardScaler:
         Update mean and variance estimates with a new chunk of data.
 
         Safe to call multiple times. Each call refines the running stats
-        rather than replacing them.
+        instead of replacing them.
 
         Parameters
         ----------
@@ -127,7 +127,7 @@ class MinMaxScaler:
     Scales each feature to a fixed range (default 0 to 1).
 
     Supports partial_fit() by tracking the running min and max across
-    chunks. Min and max are just updated if a new chunk extends the range.
+    chunks. Min and max get updated if a new chunk extends the range.
 
     Parameters
     ----------
@@ -222,8 +222,8 @@ class Imputer:
     each new chunk of data.
 
     Only 'mean' strategy is supported in streaming mode since median
-    and constant do not have natural incremental updates. Constant fill
-    is also supported since it never changes.
+    doesn't have a natural incremental update. Constant fill is also
+    supported since it never changes.
 
     Parameters
     ----------
