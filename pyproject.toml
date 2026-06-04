@@ -1,17 +1,12 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61"]
+build-backend = "setuptools.backends.legacy:build"
 
 [project]
-name = "numcompute"
+name = "numcompute-stream"
 version = "0.1.0"
-description = "Modular scientific computing toolkit built on plain Python and NumPy"
-readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["numpy>=1.26"]
-
-[project.optional-dependencies]
-dev = ["pytest>=8", "pytest-cov"]
+dependencies = ["numpy", "matplotlib"]
 
 [tool.setuptools.packages.find]
 where = ["."]

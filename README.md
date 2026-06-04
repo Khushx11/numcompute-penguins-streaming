@@ -107,7 +107,7 @@ vs ground truth on the last chunk, and a full confusion matrix.
 pytest tests/ -v
 ```
 
-177 tests across five files. Normal cases and edge cases both: NaN inputs,
+208 tests across 13 files. Normal cases and edge cases both: NaN inputs,
 zero-variance features, single-sample chunks, rolling window accuracy,
 incremental category expansion in the encoder, shape mismatches, and
 calling predict before fit.
