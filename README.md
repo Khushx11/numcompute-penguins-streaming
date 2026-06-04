@@ -155,7 +155,7 @@ Bagging does not.
 NumCompute-Stream/
 ├── numcompute_stream/   core package (9 modules)
 ├── numcompute/          base NumCompute package
-├── tests/               177 unit tests
+├── tests/               208 unit tests
 ├── demo/                stream_demo.ipynb + penguins.csv
 ├── benchmark/           run_benchmarks.py
 ├── report/              report.pdf
