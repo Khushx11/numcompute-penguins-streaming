@@ -167,5 +167,5 @@ NumCompute-Stream/
 ## Author
 
 Khush Bhavin Maru (a[redacted])
-University of Adelaide
+Adelaide University
 Programming for Artificial Intelligence — COMP 5004
