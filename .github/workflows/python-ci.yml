@@ -25,5 +25,23 @@ jobs:
         run: python -m pip install -e '.[dev]'
       - name: Run tests
         run: python -m pytest -q
-      - name: Verify module imports
-        run: python -c "import numcompute, numcompute_stream"
+      - name: Check installed wheel outside the source tree
+        run: |
+          python -m pip wheel --no-deps --wheel-dir dist .
+          python -m venv "$RUNNER_TEMP/numcompute-wheel"
+          wheel_python="$RUNNER_TEMP/numcompute-wheel/bin/python"
+          "$wheel_python" -m pip install dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$wheel_python" - <<'PY'
+          import numpy as np
+          import numcompute
+          from numcompute_stream.io import make_stream_chunks
+          from numcompute_stream.stream import StreamTrainer
+          from numcompute_stream.tree import DecisionTreeClassifier
+
+          features = np.array([[0.0], [1.0], [0.0], [1.0]])
+          labels = np.array([0, 1, 0, 1])
+          trainer = StreamTrainer(DecisionTreeClassifier(), classes=[0, 1])
+          records = trainer.run_prequential(make_stream_chunks(features, labels, chunk_size=2))
+          assert [record["evaluated"] for record in records] == [False, True]
+          PY
