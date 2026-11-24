@@ -61,7 +61,7 @@ pipe = Pipeline([
 ])
 
 trainer = StreamTrainer(pipe, classes=[0, 1])
-trainer.run(chunks)
+trainer.run(chunks)  # sanity-check mode: scores after fitting each chunk
 trainer.summary()
 
 vis.plot_metric_over_time(
@@ -70,6 +70,28 @@ vis.plot_metric_over_time(
     ylabel='accuracy',
 )
 ```
+
+---
+
+## Evaluation without same-chunk training leakage
+
+The original `run()` mode measures each chunk **after** fitting it. For a
+test-then-train evaluation, use:
+
+```python
+chunks = make_stream_chunks(X, y, chunk_size=20)
+trainer = StreamTrainer(
+    RandomForestClassifier(n_estimators=10, max_depth=4, random_state=0),
+    classes=[0, 1],
+)
+log = trainer.run_prequential(chunks)
+evaluated = [row for row in log if row["evaluated"]]
+```
+
+The first chunk initialises the model and is excluded from evaluation;
+subsequent chunks are predicted **before** their labels are used for training.
+See [the evaluation protocol](docs/evaluation-protocol.md) for metric definitions,
+assumptions, and limitations.
 
 ---
 
@@ -108,7 +130,7 @@ vs ground truth on the last chunk, and a full confusion matrix.
 pytest tests/ -v
 ```
 
-208 tests across 13 files. Normal cases and edge cases both: NaN inputs,
+The regression suite covers normal cases and edge cases, including: NaN inputs,
 zero-variance features, single-sample chunks, rolling window accuracy,
 incremental category expansion in the encoder, shape mismatches, and
 calling predict before fit.
@@ -136,8 +158,8 @@ streaming chunks, and StandardScaler partial_fit cost as chunk count grows.
   a bounded-memory stream learner would require a different algorithm.
 - The benchmarks demonstrate implementation behaviour on example workloads;
   they should not be interpreted as production performance guarantees.
-- For an unbiased deployment estimate, introduce a separate chronological
-  evaluation stream and score each chunk before calling `partial_fit`.
+- Prefer `run_prequential` for test-then-train measurement; use an independently
+  held-out dataset to assess deployment generalisation.
 
 ---
 
