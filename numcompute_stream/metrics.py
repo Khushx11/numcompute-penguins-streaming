@@ -176,17 +176,30 @@ class ClassificationReport:
         """
         y_true = np.asarray(y_true)
         y_pred = np.asarray(y_pred)
-        if y_true.shape != y_pred.shape:
-            raise ValueError(
-                f"shape mismatch: y_true {y_true.shape} vs y_pred {y_pred.shape}"
-            )
-        # initialise class list from first chunk
+        if y_true.ndim != 1 or y_pred.ndim != 1 or y_true.shape != y_pred.shape:
+            raise ValueError("y_true and y_pred must be matching 1D arrays")
+        if y_true.size == 0:
+            raise ValueError("chunk must not be empty")
+        observed_classes = np.union1d(y_true, y_pred)
         if self.classes is None:
-            self.classes = np.unique(y_true)
-            n = len(self.classes)
-            self.tp = np.zeros(n, dtype=int)
-            self.fp = np.zeros(n, dtype=int)
-            self.fn = np.zeros(n, dtype=int)
+            self.classes = observed_classes
+            self.tp = np.zeros(len(self.classes), dtype=int)
+            self.fp = np.zeros(len(self.classes), dtype=int)
+            self.fn = np.zeros(len(self.classes), dtype=int)
+        else:
+            expanded = np.union1d(self.classes, observed_classes)
+            if len(expanded) != len(self.classes):
+                old_indices = np.searchsorted(expanded, self.classes)
+
+                def expand_counts(counts):
+                    updated = np.zeros(len(expanded), dtype=int)
+                    updated[old_indices] = counts
+                    return updated
+
+                self.tp = expand_counts(self.tp)
+                self.fp = expand_counts(self.fp)
+                self.fn = expand_counts(self.fn)
+                self.classes = expanded
         for i, c in enumerate(self.classes):
             self.tp[i] += int(np.sum((y_pred == c) & (y_true == c)))
             self.fp[i] += int(np.sum((y_pred == c) & (y_true != c)))
@@ -204,14 +217,21 @@ class ClassificationReport:
         """
         if self.classes is None:
             return {}
-        prec = np.where(
-            self.tp + self.fp > 0, self.tp / (self.tp + self.fp), 0.0
+        prec_denom = self.tp + self.fp
+        rec_denom = self.tp + self.fn
+        prec = np.divide(
+            self.tp, prec_denom, out=np.zeros(len(self.tp), dtype=float),
+            where=prec_denom > 0,
         )
-        rec = np.where(
-            self.tp + self.fn > 0, self.tp / (self.tp + self.fn), 0.0
+        rec = np.divide(
+            self.tp, rec_denom, out=np.zeros(len(self.tp), dtype=float),
+            where=rec_denom > 0,
         )
         denom = prec + rec
-        f1 = np.where(denom > 0, 2 * prec * rec / denom, 0.0)
+        f1 = np.divide(
+            2 * prec * rec, denom, out=np.zeros_like(prec),
+            where=denom > 0,
+        )
         return {
             "precision": prec,
             "recall": rec,
