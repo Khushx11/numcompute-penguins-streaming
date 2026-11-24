@@ -150,6 +150,53 @@ class StreamTrainer:
             self.fit_chunk(X_chunk, y_chunk)
         return self.chunk_log
 
+    def run_prequential(self, chunks):
+        """
+        Evaluate each chunk BEFORE fitting it, after one warm-up chunk.
+
+        The first chunk is used solely to initialise the estimator; no
+        accuracy is claimed for it. Subsequent chunks are predicted before
+        partial_fit to prevent evaluation on the same data used to train.
+
+        This is a test-then-train protocol, not a substitute for a separate
+        independent evaluation dataset. See docs/evaluation-protocol.md.
+        """
+        for X_chunk, y_chunk in chunks:
+            X = np.asarray(X_chunk, dtype=float)
+            y = np.asarray(y_chunk, dtype=int)
+            if X.ndim != 2 or y.ndim != 1 or len(y) == 0 or len(X) != len(y):
+                raise ValueError("each chunk must have matching nonempty 2D X and 1D y")
+
+            t_start = time.perf_counter()
+            is_warmup = self.n_chunks == 0
+            if not is_warmup:
+                score = self.score_chunk(X, y, _log=False)
+                self.cumulative_correct += score["correct"]
+                self.cumulative_total += len(y)
+
+            if self.classes is None:
+                self.model.partial_fit(X, y)
+            else:
+                self.model.partial_fit(X, y, classes=self.classes)
+
+            self.n_chunks += 1
+            entry = {
+                "chunk": self.n_chunks,
+                "n_samples": len(y),
+                "accuracy": float("nan") if is_warmup else score["accuracy"],
+                "cumulative_accuracy": (
+                    float("nan") if is_warmup
+                    else self.cumulative_correct / self.cumulative_total
+                ),
+                "loss": float("nan") if is_warmup else score["loss"],
+                "elapsed_s": round(time.perf_counter() - t_start, 4),
+                "mem_bytes": self._estimate_memory(),
+                "evaluated": not is_warmup,
+            }
+            self.chunk_log.append(entry)
+
+        return self.chunk_log
+
     def accuracy_history(self):
         """
         Per-chunk accuracy values extracted from the log.
