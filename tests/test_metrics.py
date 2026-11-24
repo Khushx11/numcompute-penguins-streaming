@@ -120,3 +120,34 @@ def test_confusion_matrix_rejects_invalid_chunk_shapes(actual, predicted):
     tracker = ConfusionMatrixTracker()
     with pytest.raises(ValueError):
         tracker.update(actual, predicted)
+
+
+def test_classification_report_tracks_predicted_and_new_true_classes():
+    tracker = ClassificationReport()
+    tracker.update([1, 3], [1, 3])
+    tracker.update([2], [1])
+    assert tracker.classes.tolist() == [1, 2, 3]
+    np.testing.assert_array_equal(tracker.tp, [1, 0, 1])
+    np.testing.assert_array_equal(tracker.fp, [1, 0, 0])
+    np.testing.assert_array_equal(tracker.fn, [0, 1, 0])
+    result = tracker.result()
+    assert result["precision"][0] == pytest.approx(0.5)
+    assert result["recall"][2] == pytest.approx(1.0)
+
+
+def test_classification_report_tracks_newly_predicted_class():
+    tracker = ClassificationReport()
+    tracker.update([0, 0], [0, 2])
+    assert tracker.classes.tolist() == [0, 2]
+    np.testing.assert_array_equal(tracker.fp, [0, 1])
+    assert np.isfinite(tracker.result()["f1"]).all()
+
+
+@pytest.mark.parametrize("actual,predicted", [
+    ([0, 1], [0]),
+    ([[0, 1]], [[0, 1]]),
+    ([], []),
+])
+def test_classification_report_rejects_invalid_input(actual, predicted):
+    with pytest.raises(ValueError):
+        ClassificationReport().update(actual, predicted)
