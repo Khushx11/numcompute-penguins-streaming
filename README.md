@@ -207,8 +207,8 @@ NumCompute-Stream/
 
 ---
 
-## Author
+## Project provenance
 
-Khush Bhavin Maru
-Adelaide University
-Programming for Artificial Intelligence — COMP 5004
+The base `numcompute/` package comes from the [original NumCompute group project](https://github.com/jaineel11/NumCompute) for Programming for Artificial Intelligence (COMP 5004) at Adelaide University. GitHub lists Khushx11, jaineel11, vaibhavpatel26 and Harshal192 as contributors to the original repository.
+
+Khush Bhavin Maru maintains this portfolio edition, which adds the `numcompute_stream/` extension, streaming evaluation and the Palmer Penguins dashboard. The original repository is private and requires collaborator access.
