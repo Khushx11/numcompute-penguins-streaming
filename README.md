@@ -198,7 +198,7 @@ Bagging does not.
 NumCompute-Stream/
 ├── numcompute_stream/   core package (9 modules)
 ├── numcompute/          base NumCompute package
-├── tests/               208 unit tests
+├── tests/               test suite
 ├── demo/                stream_demo.ipynb + penguins.csv
 ├── benchmark/           run_benchmarks.py
 ├── report/              report.pdf
@@ -207,8 +207,19 @@ NumCompute-Stream/
 
 ---
 
-## Project provenance
+## Project provenance and contributions
 
-The base `numcompute/` package comes from the [original NumCompute group project](https://github.com/jaineel11/NumCompute) for Programming for Artificial Intelligence (COMP 5004) at Adelaide University. GitHub lists Khushx11, jaineel11, vaibhavpatel26 and Harshal192 as contributors to the original repository.
+The base `numcompute/` package comes from the [original NumCompute group project](https://github.com/jaineel11/NumCompute), completed for Programming for Artificial Intelligence (COMP 5004) at Adelaide University. The original README credits these contributions:
 
-Khush Bhavin Maru maintains this portfolio edition, which adds the `numcompute_stream/` extension, streaming evaluation and the Palmer Penguins dashboard. The original repository is private and requires collaborator access.
+- **Khush Maru** (@Khushx11) implemented `sort_search.py` and `rank.py`, covering sorting, top-k, quickselect, binary search and ranking with ties.
+- **Jaineel Patel** (@jaineel11) contributed `utils.py` and `io.py`.
+- **Harshal Lad** (@Harshal192) contributed `preprocessing.py` and `pipeline.py`.
+- **Vaibhav Patel** (@vaibhavpatel26) contributed `stats.py`, `metrics.py`, `optim.py` and `benchmarking.py`.
+
+Khush maintains this portfolio edition, which adds the streaming extension in `numcompute_stream/`, test-then-train evaluation, and a Palmer Penguins dashboard.
+
+### Verification of the original project
+
+All 11 base package files in this edition match the supplied group archive byte for byte. In a local run of the original archive, 149 tests passed, all 23 quickstart notebook code cells executed, and the benchmark script completed. The notebook uses the archive’s 10-row example CSV. On that machine, the original sort and top-k routines took about 22 times as long as their Python sort baselines. The scaler and pairwise-distance routines took about 1/30 and 1/369 of the corresponding loop times.
+
+The original GitHub repository requires collaborator access. The supplied archive contains no redistribution licence. The portfolio edition is private pending permission to publish the shared code.
