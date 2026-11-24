@@ -262,6 +262,10 @@ class ConfusionMatrixTracker:
         """
         y_true = np.asarray(y_true)
         y_pred = np.asarray(y_pred)
+        if y_true.ndim != 1 or y_pred.ndim != 1 or y_true.shape != y_pred.shape:
+            raise ValueError("y_true and y_pred must be matching 1D arrays")
+        if y_true.size == 0:
+            raise ValueError("chunk must not be empty")
         all_labels = np.unique(np.concatenate([y_true, y_pred]))
 
         if self.classes is None:
@@ -269,20 +273,15 @@ class ConfusionMatrixTracker:
             n = len(self.classes)
             self.matrix = np.zeros((n, n), dtype=int)
         else:
-            # expand matrix if new classes appear mid-stream
-            new_classes = np.setdiff1d(all_labels, self.classes)
-            if len(new_classes) > 0:
-                self.classes = np.concatenate([self.classes, new_classes])
-                self.classes = np.sort(self.classes)
-                n = len(self.classes)
-                new_matrix = np.zeros((n, n), dtype=int)
-                # copy old counts into the new expanded matrix
-                old_idx = np.searchsorted(self.classes, self.classes[
-                    :len(self.matrix)
-                ])
-                for r in range(len(self.matrix)):
-                    for c_col in range(len(self.matrix)):
-                        new_matrix[old_idx[r], old_idx[c_col]] += self.matrix[r, c_col]
+            # Preserve the old label order while expanding the index map.
+            # New classes may sort *between* existing labels, so copying into
+            # the first N rows would silently corrupt previous counts.
+            expanded = np.union1d(self.classes, all_labels)
+            if len(expanded) > len(self.classes):
+                old_positions = np.searchsorted(expanded, self.classes)
+                new_matrix = np.zeros((len(expanded), len(expanded)), dtype=int)
+                new_matrix[np.ix_(old_positions, old_positions)] = self.matrix
+                self.classes = expanded
                 self.matrix = new_matrix
 
         row_idx = np.searchsorted(self.classes, y_true)
