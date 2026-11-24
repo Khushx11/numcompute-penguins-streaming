@@ -29,8 +29,8 @@ its own models and pipelines rather than delegating them to scikit-learn.
 ## Installation
 
 ```bash
-git clone https://github.com/Khushx11/NumCompute-Stream.git
-cd NumCompute-Stream
+git clone https://github.com/Khushx11/numcompute-streaming-ml.git
+cd numcompute-streaming-ml
 pip install -e ".[dev]"
 ```
 
