@@ -1,11 +1,12 @@
 # NumCompute-Stream
 
-Streaming, tree-based machine learning built from scratch using NumPy only.
+Streaming-oriented, tree-based machine learning implemented with NumPy.
 
-This extends the base NumCompute package with real incremental learning. Every
-component accepts data chunk by chunk through partial_fit(), so models keep
-updating as new data arrives without ever needing the full dataset loaded at once.
-No scikit-learn, no pandas, no shortcuts.
+This extends the base NumCompute package with chunk-wise processing and a shared
+`partial_fit` interface for applicable estimators and transformers. The tree
+estimators **buffer observed examples and rebuild their trees** as chunks arrive;
+this is not a bounded-memory online tree algorithm. The repository implements
+its own models and pipelines rather than delegating them to scikit-learn.
 
 ---
 
@@ -30,7 +31,7 @@ No scikit-learn, no pandas, no shortcuts.
 ```bash
 git clone https://github.com/Khushx11/NumCompute-Stream.git
 cd NumCompute-Stream
-pip install -e .
+pip install -e ".[dev]"
 ```
 
 Python 3.10+, NumPy, and matplotlib. That is all.
@@ -126,6 +127,20 @@ streaming chunks, and StandardScaler partial_fit cost as chunk count grows.
 
 ---
 
+## Evaluation scope and limitations
+
+- `StreamTrainer.fit_chunk` trains on the current chunk before reporting accuracy
+  on that **same chunk**. These figures describe in-sample performance, not
+  a held-out estimate of future streaming accuracy.
+- The accumulating tree buffers require increasing memory and rebuilding cost;
+  a bounded-memory stream learner would require a different algorithm.
+- The benchmarks demonstrate implementation behaviour on example workloads;
+  they should not be interpreted as production performance guarantees.
+- For an unbiased deployment estimate, introduce a separate chronological
+  evaluation stream and score each chunk before calling `partial_fit`.
+
+---
+
 ## Design notes
 
 The tree uses a rebuild-from-buffer strategy rather than a proper online
@@ -166,6 +181,6 @@ NumCompute-Stream/
 
 ## Author
 
-Khush Bhavin Maru (a[redacted])
+Khush Bhavin Maru
 Adelaide University
 Programming for Artificial Intelligence — COMP 5004
