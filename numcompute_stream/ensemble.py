@@ -92,13 +92,15 @@ class RandomForestClassifier:
 
         # accumulate data across chunks
         if self._X_buf is None:
-            self._X_buf = X
-            self._y_buf = y
+            self._X_buf = X.copy()
+            self._y_buf = y.copy()
         else:
             self._X_buf = np.vstack([self._X_buf, X])
             self._y_buf = np.concatenate([self._y_buf, y])
 
         seen = np.unique(self._y_buf)
+        if self.classes_ is not None:
+            seen = np.union1d(seen, self.classes_)
         if classes is not None:
             seen = np.unique(np.concatenate([seen, np.asarray(classes, dtype=int)]))
         self.classes_ = seen
@@ -132,6 +134,7 @@ class RandomForestClassifier:
         self._X_buf = None
         self._y_buf = None
         self.fitted_ = False
+        self.classes_ = None
         return self.partial_fit(X, y, classes=classes)
 
     def predict(self, X):
@@ -156,7 +159,7 @@ class RandomForestClassifier:
         result = np.zeros(n_samples, dtype=int)
         for i in range(n_samples):
             votes = all_preds[:, i]
-            counts = np.bincount(votes.astype(int), minlength=len(self.classes_))
+            counts = np.bincount(np.searchsorted(self.classes_, votes), minlength=len(self.classes_))
             result[i] = int(self.classes_[np.argmax(counts)])
         return result
 
@@ -239,13 +242,15 @@ class BaggingClassifier:
             raise ValueError(f"X and y length mismatch: {len(X)} vs {len(y)}")
 
         if self._X_buf is None:
-            self._X_buf = X
-            self._y_buf = y
+            self._X_buf = X.copy()
+            self._y_buf = y.copy()
         else:
             self._X_buf = np.vstack([self._X_buf, X])
             self._y_buf = np.concatenate([self._y_buf, y])
 
         seen = np.unique(self._y_buf)
+        if self.classes_ is not None:
+            seen = np.union1d(seen, self.classes_)
         if classes is not None:
             seen = np.unique(np.concatenate([seen, np.asarray(classes, dtype=int)]))
         self.classes_ = seen
@@ -277,6 +282,7 @@ class BaggingClassifier:
         self._X_buf = None
         self._y_buf = None
         self.fitted_ = False
+        self.classes_ = None
         return self.partial_fit(X, y, classes=classes)
 
     def predict(self, X):
@@ -299,7 +305,7 @@ class BaggingClassifier:
         result = np.zeros(n_samples, dtype=int)
         for i in range(n_samples):
             votes = all_preds[:, i]
-            counts = np.bincount(votes.astype(int), minlength=len(self.classes_))
+            counts = np.bincount(np.searchsorted(self.classes_, votes), minlength=len(self.classes_))
             result[i] = int(self.classes_[np.argmax(counts)])
         return result
 

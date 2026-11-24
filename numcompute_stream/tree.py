@@ -218,20 +218,23 @@ class DecisionTreeClassifier:
 
         # accumulate data
         if self._X_buf is None:
-            self._X_buf = X
-            self._y_buf = y
+            self._X_buf = X.copy()
+            self._y_buf = y.copy()
         else:
             self._X_buf = np.vstack([self._X_buf, X])
             self._y_buf = np.concatenate([self._y_buf, y])
 
         # update known classes
         seen = np.unique(self._y_buf)
+        if self.classes_ is not None:
+            seen = np.union1d(seen, self.classes_)
         if classes is not None:
             seen = np.unique(np.concatenate([seen, np.asarray(classes, dtype=int)]))
         self.classes_ = seen
 
         # rebuild tree from accumulated buffer
-        self.root = self._build(self._X_buf, self._y_buf, depth=0)
+        encoded_y = np.searchsorted(self.classes_, self._y_buf)
+        self.root = self._build(self._X_buf, encoded_y, depth=0)
         self.fitted_ = True
         return self
 
@@ -240,6 +243,7 @@ class DecisionTreeClassifier:
         self._X_buf = None
         self._y_buf = None
         self.fitted_ = False
+        self.classes_ = None
         return self.partial_fit(X, y, classes=classes)
 
     def _build(self, X, y, depth):
@@ -260,7 +264,7 @@ class DecisionTreeClassifier:
             or len(np.unique(y)) == 1
         ):
             node.is_leaf = True
-            node.prediction = int(self.classes_[np.argmax(counts[:len(self.classes_)])])
+            node.prediction = int(self.classes_[np.argmax(counts)])
             return node
 
         feat, thresh, gain = _best_split(
@@ -270,7 +274,7 @@ class DecisionTreeClassifier:
         # no valid split found, make this a leaf
         if feat is None or gain <= 0:
             node.is_leaf = True
-            node.prediction = int(self.classes_[np.argmax(counts[:len(self.classes_)])])
+            node.prediction = int(self.classes_[np.argmax(counts)])
             return node
 
         node.feature = feat

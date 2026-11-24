@@ -85,3 +85,18 @@ def test_ensemble_predict_before_fit_raises():
     clf = EnsembleClassifier(method="random_forest", n_estimators=3)
     with pytest.raises(RuntimeError):
         clf.predict(np.ones((5, 4)))
+
+
+@pytest.mark.parametrize("classifier", [RandomForestClassifier, BaggingClassifier])
+def test_ensemble_owns_batches_and_votes_with_sparse_labels(classifier):
+    X = np.arange(4.0).reshape(-1, 1)
+    y = np.full(4, 5, dtype=int)
+    model = classifier(n_estimators=3, random_state=0)
+    model.partial_fit(X, y, classes=[-2, 5])
+    X[:] = 99
+    y[:] = -2
+    model.partial_fit([[4]], [5])
+
+    np.testing.assert_array_equal(model._X_buf[:, 0], np.arange(5))
+    np.testing.assert_array_equal(model.predict([[0], [4]]), [5, 5])
+    np.testing.assert_allclose(model.predict_proba([[0]]), [[0, 1]])

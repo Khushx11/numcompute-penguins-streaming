@@ -96,3 +96,17 @@ def test_tree_pure_node_becomes_leaf():
     clf.fit(X, y)
     preds = clf.predict(X)
     assert (preds == 1).all()
+
+
+def test_tree_preserves_sparse_labels_and_owns_training_batches():
+    X = np.arange(4.0).reshape(-1, 1)
+    y = np.array([-2, 5, 5, 5])
+    tree = DecisionTreeClassifier(max_depth=0).partial_fit(X, y, classes=[20])
+    assert tree.predict([[0]])[0] == 5
+    np.testing.assert_allclose(tree.predict_proba([[0]]), [[0.25, 0.75, 0]])
+
+    X[:] = 99
+    y[:] = -2
+    tree.partial_fit([[4]], [5])
+    np.testing.assert_array_equal(tree._X_buf[:, 0], np.arange(5))
+    np.testing.assert_allclose(tree.predict_proba([[0]]), [[0.2, 0.8, 0]])
