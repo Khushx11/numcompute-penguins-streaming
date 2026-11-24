@@ -220,6 +220,8 @@ Khush maintains this portfolio edition, which adds the streaming extension in `n
 
 ### Verification of the original project
 
+The [original coursework snapshot](coursework/NumCompute-main/) preserves the group README, package, test suite, benchmark script and recorded timings, quickstart notebook, and example CSV from the supplied archive. Its original installation and execution instructions apply from that directory. The streaming edition runs from the repository root.
+
 All 11 base package files in this edition match the supplied group archive byte for byte. In a local run of the original archive, 149 tests passed, all 23 quickstart notebook code cells executed, and the benchmark script completed. The notebook uses the archive’s 10-row example CSV. On that machine, the original sort and top-k routines took about 22 times as long as their Python sort baselines. The scaler and pairwise-distance routines took about 1/30 and 1/369 of the corresponding loop times.
 
 The original GitHub repository requires collaborator access. The supplied archive contains no redistribution licence. The portfolio edition is private pending permission to publish the shared code.

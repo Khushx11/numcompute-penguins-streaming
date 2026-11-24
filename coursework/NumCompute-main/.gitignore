@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+*.ipynb_checkpoints/
+.env
+venv/
+check.py
+test.csv
+out.csv
+numcompute/check_member4.py
+benchmark/
