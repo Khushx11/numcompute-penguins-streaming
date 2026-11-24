@@ -23,7 +23,10 @@ jobs:
           cache: pip
       - name: Install project
         run: python -m pip install -e '.[dev]'
-      - name: Run tests
+      - name: Test the streaming edition
+        run: python -m pytest -q
+      - name: Test the original coursework
+        working-directory: coursework/NumCompute-main
         run: python -m pytest -q
       - name: Check installed wheel outside the source tree
         run: |
