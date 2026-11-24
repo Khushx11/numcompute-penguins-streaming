@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NumCompute Streaming ML</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body><header><div><a href="/">NumCompute Streaming ML</a><span>Test first · train second</span></div></header>
+<main><h1>Streaming evaluation</h1><p class="intro">Compare a NumPy classifier with a past-majority baseline as new labelled batches arrive.</p>
+<div class="layout">
+<section class="panel controls"><h2>Experiment</h2><form id="settings">
+<label for="dataset">Dataset</label><select id="dataset" name="dataset"><option value="penguins">Palmer Penguins</option><option value="drift">Synthetic concept drift</option></select>
+<label for="model">Estimator</label><select id="model" name="model"><option value="tree">Decision tree</option><option value="forest">Random forest</option></select>
+<label for="chunk">Chunk size</label><select id="chunk" name="chunk"><option>20</option><option selected>40</option><option>80</option></select>
+<button>Run evaluation</button><p id="status" role="status"></p>
+</form><p class="small">The first chunk warms up the model. Each later chunk is predicted before it updates the model.</p></section>
+<div class="results">
+<section class="panel"><h2>Accuracy over the stream</h2><p id="source">Waiting for the experiment.</p>
+<div id="kpis" class="kpis"></div><p id="legend" class="small" hidden><span class="blue">■</span> Model cumulative accuracy <span class="gold">■</span> Previous-label majority</p>
+<canvas id="chart" role="img" aria-label="Cumulative pre-update accuracy for the classifier and majority baseline"></canvas></section>
+<section class="panel"><h2>Chunk diagnostics</h2><p class="small">Feature-buffer size counts only stored feature values. Time includes prediction and fitting, and varies by machine.</p>
+<div class="scroll"><table><thead><tr><th>Chunk</th><th>Seen</th><th>Scored</th><th>Chunk accuracy</th><th>Model</th><th>Majority</th><th>Feature buffer</th><th>Time</th></tr></thead><tbody id="rows"></tbody></table></div></section>
+</div></div>
+</main></body></html>
