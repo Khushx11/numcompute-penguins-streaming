@@ -97,3 +97,26 @@ def test_rolling_accuracy_reset():
     ra.update([0, 1], [0, 1])
     ra.reset()
     assert ra.result() == 0.0
+
+def test_confusion_matrix_preserves_old_counts_when_new_class_sorts_between():
+    tracker = ConfusionMatrixTracker()
+    tracker.update([1, 3], [3, 1])
+    tracker.update([2], [2])
+    actual = tracker.result()
+    np.testing.assert_array_equal(actual["classes"], [1, 2, 3])
+    np.testing.assert_array_equal(actual["matrix"], [
+        [0, 0, 1],
+        [0, 1, 0],
+        [1, 0, 0],
+    ])
+
+
+@pytest.mark.parametrize("actual,predicted", [
+    ([1, 2], [1]),
+    ([[1, 2]], [[1, 2]]),
+    ([], []),
+])
+def test_confusion_matrix_rejects_invalid_chunk_shapes(actual, predicted):
+    tracker = ConfusionMatrixTracker()
+    with pytest.raises(ValueError):
+        tracker.update(actual, predicted)
