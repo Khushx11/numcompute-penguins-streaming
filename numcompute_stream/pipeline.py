@@ -13,7 +13,9 @@ class Pipeline:
     """
     Chains a sequence of transformers followed by a final estimator.
 
-    Each transformer must implement partial_fit and transform.
+    Each transformer must implement partial_fit and transform. Streaming updates
+    freeze preprocessing after the first chunk so buffered examples and new
+    observations remain in the same feature space.
     The final step must implement partial_fit and predict.
     All intermediate steps are fitted and transformed in order,
     with the output of each step feeding into the next.
@@ -55,11 +57,10 @@ class Pipeline:
 
     def partial_fit(self, X, y, classes=None):
         """
-        Update all steps with a new chunk of data.
+        Update the estimator with a new chunk of data.
 
-        Each transformer is partial_fitted then used to transform X
-        before passing to the next step. The final estimator gets the
-        fully transformed X.
+        Fit each transformer on the first chunk, then keep its fitted state
+        fixed across later chunks. An explicit full fit refreshes preprocessing.
 
         Parameters
         ----------
@@ -73,16 +74,15 @@ class Pipeline:
         self
         """
         X = np.asarray(X, dtype=float)
-        # update and transform through each intermediate step
-        for name, step in self._transformers:
-            if not hasattr(step, "partial_fit"):
-                raise TypeError(f"step '{name}' does not have partial_fit")
-            step.partial_fit(X)
-            X = step.transform(X)
-        # update the final estimator
         final = self._estimator
         if not hasattr(final, "partial_fit"):
             raise TypeError("final estimator does not have partial_fit")
+        for name, step in self._transformers:
+            if not self.fitted_:
+                if not hasattr(step, "partial_fit"):
+                    raise TypeError(f"step '{name}' does not have partial_fit")
+                step.partial_fit(X)
+            X = step.transform(X)
         if classes is not None:
             final.partial_fit(X, y, classes=classes)
         else:

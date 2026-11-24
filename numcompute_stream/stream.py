@@ -171,14 +171,15 @@ class StreamTrainer:
             is_warmup = self.n_chunks == 0
             if not is_warmup:
                 score = self.score_chunk(X, y, _log=False)
-                self.cumulative_correct += score["correct"]
-                self.cumulative_total += len(y)
 
             if self.classes is None:
                 self.model.partial_fit(X, y)
             else:
                 self.model.partial_fit(X, y, classes=self.classes)
 
+            if not is_warmup:
+                self.cumulative_correct += score["correct"]
+                self.cumulative_total += len(y)
             self.n_chunks += 1
             entry = {
                 "chunk": self.n_chunks,

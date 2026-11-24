@@ -103,3 +103,34 @@ def test_stream_trainer_with_pipeline():
     chunks = make_stream_chunks(X, y, chunk_size=20)
     trainer.run(chunks)
     assert trainer.n_chunks == 3
+
+
+def test_streaming_preprocessing_keeps_buffer_in_one_feature_space():
+    first = np.array([[0.0], [2.0]])
+    second = np.array([[12.0], [16.0]])
+    pipe = Pipeline([
+        ("scale", StandardScaler()),
+        ("model", DecisionTreeClassifier(max_depth=3, random_state=0)),
+    ])
+    pipe.partial_fit(first, [0, 1])
+    expected = pipe.transform(np.vstack([first, second]))
+    pipe.partial_fit(second, [0, 1])
+    np.testing.assert_allclose(pipe._estimator._X_buf, expected)
+    np.testing.assert_allclose(pipe.transform(np.vstack([first, second])), expected)
+
+
+def test_failed_update_does_not_count_prequential_predictions():
+    class RejectsSecondChunk:
+        def partial_fit(self, X, y):
+            if X[0, 0] == 1:
+                raise ValueError("update failed")
+
+        def predict(self, X):
+            return np.zeros(len(X), dtype=int)
+
+    trainer = StreamTrainer(RejectsSecondChunk())
+    trainer.run_prequential([(np.array([[0.0]]), [0])])
+    with pytest.raises(ValueError, match="update failed"):
+        trainer.run_prequential([(np.array([[1.0]]), [0])])
+    assert trainer.n_chunks == 1
+    assert trainer.cumulative_total == 0

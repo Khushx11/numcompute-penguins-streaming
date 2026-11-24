@@ -44,6 +44,10 @@ where chunk 1 is the initial warm-up chunk.
 
 The `loss` field uses mean squared error between integer class predictions and integer labels, which is **not cross-entropy or a calibrated probabilistic loss**. For multiclass labels, its numeric value depends on how classes are encoded.
 
+## Preprocessing in a streaming pipeline
+
+The pipeline fits preprocessing on the first chunk and holds its parameters fixed for subsequent batches. Buffered models must compare old and new observations in the same feature space. A full call to `fit` refreshes both preprocessing and the estimator using the supplied data. The standalone incremental transformers can still be updated independently.
+
 ## Limitations
 
 - The demonstration tree and ensemble implementations accumulate training data and **rebuild** their trees on successive calls to `partial_fit`. They are not bounded-memory online learners.
