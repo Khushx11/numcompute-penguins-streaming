@@ -45,6 +45,7 @@ class StreamTrainer:
         self.cumulative_correct = 0
         self.cumulative_total = 0
         self.n_chunks = 0
+        self._evaluation_mode = None
 
     def fit_chunk(self, X, y):
         """
@@ -64,6 +65,9 @@ class StreamTrainer:
         dict
             The log entry for this chunk.
         """
+        if self._evaluation_mode == "prequential":
+            raise ValueError("reset the trainer before switching evaluation modes")
+
         X = np.asarray(X, dtype=float)
         y = np.asarray(y, dtype=int)
 
@@ -78,6 +82,7 @@ class StreamTrainer:
 
         score_entry = self.score_chunk(X, y, _log=False)
 
+        self._evaluation_mode = "fit_then_score"
         self.cumulative_correct += score_entry["correct"]
         self.cumulative_total += len(y)
         self.n_chunks += 1
@@ -160,8 +165,12 @@ class StreamTrainer:
 
         This is a test-then-train protocol, not a substitute for a separate
         independent evaluation dataset. See docs/evaluation-protocol.md.
+        Use a new trainer or reset its metrics before switching modes.
         """
         for X_chunk, y_chunk in chunks:
+            if self._evaluation_mode == "fit_then_score":
+                raise ValueError("reset the trainer before switching evaluation modes")
+
             X = np.asarray(X_chunk, dtype=float)
             y = np.asarray(y_chunk, dtype=int)
             if X.ndim != 2 or y.ndim != 1 or len(y) == 0 or len(X) != len(y):
@@ -177,6 +186,7 @@ class StreamTrainer:
             else:
                 self.model.partial_fit(X, y, classes=self.classes)
 
+            self._evaluation_mode = "prequential"
             if not is_warmup:
                 self.cumulative_correct += score["correct"]
                 self.cumulative_total += len(y)
@@ -260,6 +270,7 @@ class StreamTrainer:
         self.cumulative_correct = 0
         self.cumulative_total = 0
         self.n_chunks = 0
+        self._evaluation_mode = None
         return self
 
     def _estimate_memory(self):

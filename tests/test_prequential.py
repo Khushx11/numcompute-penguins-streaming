@@ -48,3 +48,19 @@ def test_prequential_empty_stream_has_no_metrics():
     trainer = StreamTrainer(RecordingClassifier())
     assert trainer.run_prequential([]) == []
     assert trainer.cumulative_total == 0
+
+
+def test_trainer_keeps_evaluation_protocols_separate():
+    model = RecordingClassifier()
+    trainer = StreamTrainer(model)
+    chunk = (np.zeros((4, 1)), np.ones(4, dtype=int))
+    trainer.fit_chunk(*chunk)
+    with pytest.raises(ValueError, match="switching evaluation modes"):
+        trainer.run_prequential([chunk])
+    assert model.calls == [("fit", 4), ("predict", 4)]
+
+    trainer.reset().run_prequential([chunk, chunk])
+    with pytest.raises(ValueError, match="switching evaluation modes"):
+        trainer.fit_chunk(*chunk)
+    assert trainer.cumulative_total == 4
+    assert trainer.cumulative_accuracy_history()[-1] == 0
