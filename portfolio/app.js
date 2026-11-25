@@ -64,6 +64,9 @@ function inspectBatch() {
   for (const [index, row] of [...$('rows').children].entries()) {
     row.dataset.selected = String(index === selectedBatch);
   }
+  for (const [index, button] of [...$('batch-strip').children].entries()) {
+    button.setAttribute('aria-pressed', String(index === selectedBatch));
+  }
   draw(report.history);
 }
 
@@ -90,7 +93,19 @@ function render(result) {
   const picker = $('inspect-chunk');
   picker.replaceChildren(...result.history.map((_, index) =>
     new Option(index ? 'Batch ' + (index + 1) : 'Batch 1 · warm-up', String(index))));
-  picker.selectedIndex = result.history.length - 1;
+  $('batch-strip').replaceChildren(...result.history.map((row, index) => {
+    const button = item('button', '');
+    button.type = 'button';
+    const name = index ? 'Batch ' + (index + 1) : 'Batch 1 warm-up';
+    button.setAttribute('aria-label', name + (index ? ', accuracy ' + pct(row.accuracy) : ''));
+    button.append(item('span', name), item('strong', index ? pct(row.accuracy) : 'Unscored'));
+    button.addEventListener('click', () => {
+      picker.selectedIndex = index;
+      inspectBatch();
+    });
+    return button;
+  }));
+  picker.selectedIndex = 0;
   $('chunk-controls').hidden = false;
   $('diagnostics').hidden = false;
   inspectBatch();

@@ -16,30 +16,21 @@
   </div>
 </header>
 <main>
-  <section class="cover" aria-labelledby="title">
-    <div class="cover-copy">
-      <p class="provenance">Adelaide University · COMP 5004 group project</p>
-      <h1 id="title">NumCompute</h1>
-      <p>Start with the team’s NumPy toolkit, then run its portfolio extension to see how a classifier learns from one batch at a time.</p>
-      <a class="primary" href="#experiment">Open the experiment <span aria-hidden="true">↓</span></a>
-    </div>
-    <figure class="cover-photo">
-      <img src="/lab-notebook.webp" alt="" width="1200" height="800" fetchpriority="high">
-      <figcaption>Illustration of collaborative coursework</figcaption>
-    </figure>
-  </section>
+  <header class="sheet-heading">
+    <div><h1>NumCompute</h1><p>Replay a stream one batch at a time and compare model accuracy with the past-majority baseline.</p></div>
+    <a href="#team">Adelaide University · COMP 5004</a>
+  </header>
   <div class="layout" id="experiment">
     <section class="panel controls">
       <h2>Run a stream</h2>
-      <p>Compare a NumPy classifier with a baseline that predicts the most common class seen so far.</p>
       <form id="settings">
-        <label for="dataset">Dataset</label>
+        <div class="parameter"><label for="dataset">Dataset</label>
         <select id="dataset" name="dataset"><option value="penguins">Palmer Penguins</option><option value="drift">Synthetic concept drift</option></select>
-        <p class="small" id="dataset-note">Real penguin measurements replayed in year order.</p>
-        <label for="model">Estimator</label>
-        <select id="model" name="model"><option value="tree">Decision tree</option><option value="forest">Random forest</option></select>
-        <label for="chunk">Observations per batch</label>
-        <select id="chunk" name="chunk"><option>20</option><option selected>40</option><option>80</option></select>
+        <p class="small" id="dataset-note">Real penguin measurements replayed in year order.</p></div>
+        <div class="parameter"><label for="model">Estimator</label>
+        <select id="model" name="model"><option value="tree">Decision tree</option><option value="forest">Random forest</option></select></div>
+        <div class="parameter"><label for="chunk">Observations per batch</label>
+        <select id="chunk" name="chunk"><option>20</option><option selected>40</option><option>80</option></select></div>
         <button class="primary">Run evaluation</button>
         <p id="status" role="status"></p>
       </form>
@@ -63,6 +54,7 @@
       <section class="panel inspector" aria-labelledby="chunk-title">
         <h2 id="chunk-title">Inspect a batch</h2>
         <div id="chunk-controls" hidden>
+          <div id="batch-strip" role="group" aria-label="Stream batches"></div>
           <label for="inspect-chunk">Batch to inspect</label>
           <select id="inspect-chunk"></select>
         </div>
@@ -80,6 +72,7 @@
   </div>
   <section class="panel team" id="team" aria-labelledby="team-title">
     <h2 id="team-title">The original group project</h2>
+    <figure class="coursework"><img src="/lab-notebook.webp" alt="" width="1200" height="800" loading="lazy"><figcaption>Illustration of collaborative coursework</figcaption></figure>
     <p>The COMP 5004 team built the base NumPy toolkit. Khush maintains the portfolio extension, which adds batch-based classification, test-before-train evaluation and this dashboard.</p>
     <dl class="team-grid">
       <div><dt><a href="https://github.com/Khushx11">Khush Bhavin Maru</a></dt><dd>Sorting, search, top-k and ranking</dd></div>
