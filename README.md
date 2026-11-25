@@ -29,8 +29,8 @@ its own models and pipelines rather than delegating them to scikit-learn.
 ## Installation
 
 ```bash
-git clone https://github.com/Khushx11/numcompute-streaming-ml.git
-cd numcompute-streaming-ml
+git clone https://github.com/Khushx11/numcompute-penguins-streaming.git
+cd numcompute-penguins-streaming
 pip install -e ".[dev]"
 ```
 
@@ -224,4 +224,4 @@ The [original coursework snapshot](coursework/NumCompute-main/) preserves the gr
 
 All 11 base package files in this edition match the supplied group archive byte for byte. In a local run of the original archive, 149 tests passed, all 23 quickstart notebook code cells executed, and the benchmark script completed. The notebook uses the archive’s 10-row example CSV. On that machine, the original sort and top-k routines took about 22 times as long as their Python sort baselines. The scaler and pairwise-distance routines took about 1/30 and 1/369 of the corresponding loop times.
 
-The original GitHub repository requires collaborator access. The supplied archive contains no redistribution licence. The portfolio edition is private pending permission to publish the shared code.
+The original GitHub repository requires collaborator access. This portfolio edition is shared with permission for the group code. The original team credits are preserved in the coursework snapshot.
