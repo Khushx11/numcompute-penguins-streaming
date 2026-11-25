@@ -57,6 +57,12 @@ Python 3.10+, NumPy, and matplotlib. That is all.
 
 ## Interview dashboard
 
+Run the stream, jump to the synthetic rule change, and inspect batch accuracy and retained data.
+
+[Watch the 15-second captioned walkthrough](https://raw.githubusercontent.com/Khushx11/numcompute-penguins-streaming/main/docs/demo/walkthrough.mp4)
+
+[![NumCompute stream replay with the first synthetic drift batch selected](docs/demo/preview.png)](https://raw.githubusercontent.com/Khushx11/numcompute-penguins-streaming/main/docs/demo/walkthrough.mp4)
+
 After installing the package, run `python portfolio_demo.py` and open http://127.0.0.1:8004. Select a tree or random forest and a batch size. The dashboard compares test-then-train accuracy with a majority baseline derived from earlier labels and shows feature-buffer growth. Select a batch in the stream strip to connect its score and buffer growth to the accuracy chart. In **Synthetic concept drift**, select **Jump to rule change** to inspect the first batch after the label rule reverses. The dashboard credits the original COMP 5004 team and describes the separate streaming extension.
 
 The data options are [Palmer Penguins](demo/data.md) and a labelled synthetic stream with a known concept reversal. The default tree run on Penguins scores **94.4%** across **302 scored observations**, versus **44.0%** for the past-majority baseline. The first 40 observations initialise the model. The source identifies years, so the demo processes records by year with a fixed seeded order within each year. It is a repeatable benchmark demonstration rather than an operational event stream.
