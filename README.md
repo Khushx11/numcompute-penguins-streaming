@@ -10,6 +10,22 @@ its own models and pipelines rather than delegating them to scikit-learn.
 
 ---
 
+
+## Streaming evaluation
+
+```mermaid
+flowchart LR
+    A["Initialise on earlier chunks"]
+    B["Predict the next chunk"]
+    C["Score predictions"]
+    D["Fit on that chunk"]
+    A --> B --> C --> D
+```
+
+![Palmer Penguins · test-then-train accuracy](docs/readme-benchmark.svg)
+
+302 scored observations after the initial 40. The benchmark processes records by year.
+
 ## What is in the box
 
 | module | what it does |
