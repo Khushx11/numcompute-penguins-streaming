@@ -15,7 +15,8 @@ from numcompute_stream.tree import DecisionTreeClassifier
 
 ROOT = Path(__file__).resolve().parent
 FILES = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
-         "/style.css": ("style.css", "text/css")}
+         "/style.css": ("style.css", "text/css"),
+         "/lab-notebook.webp": ("lab-notebook.webp", "image/webp")}
 FEATURES = ("bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g")
 
 
@@ -98,7 +99,7 @@ def serve(port):
                 self.send_error(404)
                 return
             self.send_response(status)
-            self.send_header("Content-Type", kind + "; charset=utf-8")
+            self.send_header("Content-Type", kind if kind.startswith("image/") else kind + "; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'")
             self.send_header("Cache-Control", "no-store")

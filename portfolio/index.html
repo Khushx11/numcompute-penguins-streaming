@@ -1,20 +1,95 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NumCompute Streaming ML</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
-<body><header><div><a href="/">NumCompute Streaming ML</a><span>Test first · train second</span></div></header>
-<main><h1>Streaming evaluation</h1><p class="intro">Compare a NumPy classifier with a past-majority baseline as new labelled batches arrive.</p>
-<div class="layout">
-<section class="panel controls"><h2>Configure the stream</h2><form id="settings">
-<label for="dataset">Dataset</label><select id="dataset" name="dataset"><option value="penguins">Palmer Penguins</option><option value="drift">Synthetic concept drift</option></select>
-<label for="model">Estimator</label><select id="model" name="model"><option value="tree">Decision tree</option><option value="forest">Random forest</option></select>
-<label for="chunk">Chunk size</label><select id="chunk" name="chunk"><option>20</option><option selected>40</option><option>80</option></select>
-<button>Run evaluation</button><p id="status" role="status"></p>
-</form><p class="small">The first chunk warms up the model. Each later chunk is predicted before it updates the model.</p></section>
-<div class="results">
-<section class="panel"><h2>Accuracy over the stream</h2><p id="source">Waiting for the experiment.</p>
-<div id="kpis" class="kpis"></div><p id="legend" class="small" hidden><span class="blue">■</span> Model cumulative accuracy <span class="gold">■</span> Previous-label majority</p>
-<canvas id="chart" role="img" aria-label="Cumulative pre-update accuracy for the classifier and majority baseline"></canvas></section>
-<section class="panel"><h2>Chunk diagnostics</h2><p class="small">Feature-buffer size counts only stored feature values. Time includes prediction and fitting, and varies by machine.</p>
-<div class="scroll"><table><thead><tr><th>Chunk</th><th>Seen</th><th>Scored</th><th>Chunk accuracy</th><th>Model</th><th>Majority</th><th>Feature buffer</th><th>Time</th></tr></thead><tbody id="rows"></tbody></table></div></section>
-</div></div>
-</main></body></html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NumCompute Streaming Lab</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#experiment">Skip to the experiment</a>
+<header>
+  <div class="masthead">
+    <a class="wordmark" href="/">NumCompute</a>
+    <nav aria-label="Project sections"><a href="#experiment">Experiment</a><a href="#chunk-title">Inspect a batch</a><a href="#team">Team credits</a></nav>
+  </div>
+</header>
+<main>
+  <section class="cover" aria-labelledby="title">
+    <div class="cover-copy">
+      <p class="provenance">Adelaide University · COMP 5004 group project</p>
+      <h1 id="title">NumCompute<br>Streaming Lab</h1>
+      <p>Start with the team’s NumPy toolkit, then run its portfolio extension to see how a classifier learns from one batch at a time.</p>
+      <a class="primary" href="#experiment">Open the experiment <span aria-hidden="true">↓</span></a>
+    </div>
+    <figure class="cover-photo">
+      <img src="/lab-notebook.webp" alt="" width="1200" height="800" fetchpriority="high">
+      <figcaption>Illustration of collaborative coursework</figcaption>
+    </figure>
+  </section>
+  <div class="layout" id="experiment">
+    <section class="panel controls">
+      <h2>Run a stream</h2>
+      <p>Compare a NumPy classifier with a baseline that predicts the most common class seen so far.</p>
+      <form id="settings">
+        <label for="dataset">Dataset</label>
+        <select id="dataset" name="dataset"><option value="penguins">Palmer Penguins</option><option value="drift">Synthetic concept drift</option></select>
+        <p class="small" id="dataset-note">Real penguin measurements replayed in year order.</p>
+        <label for="model">Estimator</label>
+        <select id="model" name="model"><option value="tree">Decision tree</option><option value="forest">Random forest</option></select>
+        <label for="chunk">Observations per batch</label>
+        <select id="chunk" name="chunk"><option>20</option><option selected>40</option><option>80</option></select>
+        <button class="primary">Run evaluation</button>
+        <p id="status" role="status"></p>
+      </form>
+      <details open>
+        <summary>How batches are scored</summary>
+        <ol class="method">
+          <li><strong>Warm up.</strong> The first batch fits the estimator and earns no score.</li>
+          <li><strong>Predict and score.</strong> Predict the next batch using the model fitted so far.</li>
+          <li><strong>Update.</strong> Fit using the newly revealed labels, then repeat.</li>
+        </ol>
+      </details>
+    </section>
+    <div class="results">
+      <section class="panel" aria-labelledby="accuracy-title">
+        <h2 id="accuracy-title">Accuracy over the stream</h2>
+        <p id="source">Waiting for the first experiment.</p>
+        <div id="kpis" class="kpis"></div>
+        <p id="legend" class="legend" hidden><span class="blue">●</span> Model cumulative accuracy <span class="gold">●</span> Past-majority baseline</p>
+        <canvas id="chart" role="img" aria-label="Cumulative pre-update accuracy for the classifier and majority baseline"></canvas>
+      </section>
+      <section class="panel inspector" aria-labelledby="chunk-title">
+        <h2 id="chunk-title">Inspect a batch</h2>
+        <div id="chunk-controls" hidden>
+          <label for="inspect-chunk">Batch to inspect</label>
+          <select id="inspect-chunk"></select>
+        </div>
+        <p id="chunk-note" class="small" aria-live="polite">Run an experiment to inspect individual batches.</p>
+        <details id="diagnostics" hidden>
+          <summary>Show full batch diagnostics</summary>
+          <p class="small">Feature buffer counts stored feature values only. Processing time includes prediction and fitting and varies by machine.</p>
+          <div class="scroll" tabindex="0" role="region" aria-label="Batch diagnostics table"><table aria-label="Batch diagnostics">
+            <thead><tr><th scope="col">Batch</th><th scope="col">Seen</th><th scope="col">Scored</th><th scope="col">Batch accuracy</th><th scope="col">Model</th><th scope="col">Majority</th><th scope="col">Feature buffer</th><th scope="col">Time</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table></div>
+        </details>
+      </section>
+    </div>
+  </div>
+  <section class="panel team" id="team" aria-labelledby="team-title">
+    <h2 id="team-title">The original group project</h2>
+    <p>The COMP 5004 team built the base NumPy toolkit. Khush maintains the portfolio extension, which adds batch-based classification, test-before-train evaluation and this dashboard.</p>
+    <dl class="team-grid">
+      <div><dt><a href="https://github.com/Khushx11">Khush Bhavin Maru</a></dt><dd>Sorting, search, top-k and ranking</dd></div>
+      <div><dt><a href="https://github.com/jaineel11">Jaineel Patel</a></dt><dd>Utilities and data input/output</dd></div>
+      <div><dt><a href="https://github.com/Harshal192">Harshal Lad</a></dt><dd>Preprocessing and pipelines</dd></div>
+      <div><dt><a href="https://github.com/vaibhavpatel26">Vaibhav Patel</a></dt><dd>Statistics, metrics, optimisation and benchmarks</dd></div>
+    </dl>
+    <p class="small">The tree estimators keep the examples they have seen and rebuild on update, so feature-buffer use grows over the stream.</p>
+    <a href="https://github.com/Khushx11/numcompute-penguins-streaming#project-provenance-and-contributions">Read the project provenance</a>
+  </section>
+</main>
+</body>
+</html>
