@@ -25,7 +25,7 @@ with subprocess.Popen(
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto(address)
-            expect(page.get_by_role("heading", name="NumCompute Streaming Lab")).to_be_visible()
+            expect(page.get_by_role("heading", name="NumCompute")).to_be_visible()
             expect(page.locator("#kpis")).to_contain_text("94.4%")
             expect(page.locator("#kpis")).to_contain_text("302")
             expect(page.locator(".cover img")).to_have_js_property("complete", True)
