@@ -1,5 +1,7 @@
 # NumCompute-Stream
 
+**Project timeline:** **2026** portfolio extension of the COMP 5004 NumCompute group project at Adelaide University. The extension adds streaming evaluation and a Palmer Penguins dashboard.
+
 Streaming-oriented, tree-based machine learning implemented with NumPy.
 
 This extends the base NumCompute package with chunk-wise processing and a shared
