@@ -45,6 +45,15 @@ with subprocess.Popen(
             expect(page.locator("#source")).to_contain_text("reverses after sample 160")
             expect(page.locator("#kpis")).to_contain_text("240")
             expect(page.locator("#rows tr")).to_have_count(4)
+            page.get_by_role("button", name="Jump to rule change").click()
+            expect(page.get_by_label("Batch to inspect")).to_have_value("2")
+            expect(page.locator("#before-batch")).to_have_text("160 earlier observations")
+            expect(page.locator("#after-batch")).to_contain_text("240 retained")
+            page.get_by_role("button", name="Next").click()
+            expect(page.get_by_label("Batch to inspect")).to_have_value("3")
+            expect(page.get_by_role("button", name="Next")).to_be_disabled()
+            page.get_by_role("button", name="Previous").click()
+            expect(page.get_by_label("Batch to inspect")).to_have_value("2")
             page.route("**/api/experiment?*", lambda route: route.fulfill(
                 status=503, json={"error": "Experiment temporarily unavailable."},
             ))
@@ -67,7 +76,11 @@ with subprocess.Popen(
             if previews:
                 folder = Path(previews)
                 folder.mkdir(parents=True, exist_ok=True)
-                desktop.screenshot(path=folder / "numcompute-experiment-desktop.png", full_page=True)
-                mobile.screenshot(path=folder / "numcompute-experiment-mobile.png", full_page=True)
+                desktop.get_by_label("Dataset").select_option("drift")
+                desktop.get_by_role("button", name="Run evaluation").click()
+                desktop.get_by_role("button", name="Jump to rule change").click()
+                expect(desktop.locator("#before-batch")).to_have_text("160 earlier observations")
+                desktop.screenshot(path=folder / "numcompute-replay-desktop.png", full_page=True)
+                mobile.screenshot(path=folder / "numcompute-replay-mobile.png", full_page=True)
     finally:
         server.terminate()

@@ -4,6 +4,7 @@ const pct = value => value === null ? 'Warm-up' : (value * 100).toFixed(1) + '%'
 const kib = value => (value / 1024).toFixed(1) + ' KiB';
 let report;
 let selectedBatch = 0;
+let ruleChange = -1;
 
 function item(tag, value, type) {
   const node = document.createElement(tag);
@@ -23,6 +24,13 @@ function draw(rows) {
   const x = i => 34 + (width - 45) * i / (rows.length - 1);
   const y = p => height - 19 - (height - 27) * p;
   context.font = '10px system-ui';
+  if (ruleChange > 0) {
+    const boundary = (x(ruleChange - 1) + x(ruleChange)) / 2;
+    context.fillStyle = '#ede4c7';
+    context.fillRect(boundary, y(1), x(rows.length - 1) - boundary, y(0) - y(1));
+    context.fillStyle = '#4b422b';
+    context.fillText('Rule changed', boundary + 5, y(0) - 5);
+  }
   context.fillStyle = '#4c5d70';
   for (const value of [0, .25, .5, .75, 1]) {
     context.fillText(Math.round(value * 100) + '%', 0, y(value) + 3);
@@ -49,7 +57,17 @@ function draw(rows) {
     rows.slice(1).forEach((row, i) => i ? context.lineTo(x(i+1), y(row[key])) :
       context.moveTo(x(i+1), y(row[key])));
     context.stroke();
+    if (selectedBatch > 0) {
+      context.beginPath();
+      context.fillStyle = color;
+      context.arc(x(selectedBatch), y(rows[selectedBatch][key]), 4, 0, 2 * Math.PI);
+      context.fill();
+    }
   }
+}
+function selectBatch(index) {
+  $('inspect-chunk').selectedIndex = index;
+  inspectBatch();
 }
 function inspectBatch() {
   if (!report) return;
@@ -61,6 +79,11 @@ function inspectBatch() {
     ? number.format(count) + ' observations used to initialise the model. This batch was not scored.'
     : number.format(count) + ' observations scored before updating. Batch accuracy: ' +
       pct(current.accuracy) + ' · feature buffer after update: ' + kib(current.buffer_bytes) + '.';
+  $('before-batch').textContent = number.format(previous?.seen ?? 0) + ' earlier observations';
+  $('during-batch').textContent = current.accuracy === null ? 'Warm-up · unscored' : pct(current.accuracy) + ' batch accuracy';
+  $('after-batch').textContent = number.format(current.seen) + ' retained · ' + kib(current.buffer_bytes);
+  $('previous-batch').disabled = selectedBatch === 0;
+  $('next-batch').disabled = selectedBatch === report.history.length - 1;
   for (const [index, row] of [...$('rows').children].entries()) {
     row.dataset.selected = String(index === selectedBatch);
   }
@@ -73,6 +96,8 @@ function inspectBatch() {
 function render(result) {
   report = result;
   $('source').textContent = result.dataset;
+  ruleChange = result.dataset.startsWith('Synthetic stream') ? result.history.findIndex(row => row.seen > 160) : -1;
+  $('jump-drift').hidden = ruleChange < 0;
   const last = result.history.at(-1);
   $('kpis').replaceChildren(...[
     ['Scored observations', number.format(last.evaluated)], ['Model accuracy', pct(last.cumulative)],
@@ -99,14 +124,13 @@ function render(result) {
     const name = index ? 'Batch ' + (index + 1) : 'Batch 1 warm-up';
     button.setAttribute('aria-label', name + (index ? ', accuracy ' + pct(row.accuracy) : ''));
     button.append(item('span', name), item('strong', index ? pct(row.accuracy) : 'Unscored'));
-    button.addEventListener('click', () => {
-      picker.selectedIndex = index;
-      inspectBatch();
-    });
+    if (index === ruleChange) button.classList.add('rule-change');
+    button.addEventListener('click', () => selectBatch(index));
     return button;
   }));
   picker.selectedIndex = 0;
   $('chunk-controls').hidden = false;
+  $('batch-steps').hidden = false;
   $('diagnostics').hidden = false;
   inspectBatch();
 }
@@ -132,10 +156,13 @@ async function run() {
   }
 }
 $('inspect-chunk').addEventListener('change', inspectBatch);
+$('previous-batch').addEventListener('click', () => selectBatch(selectedBatch - 1));
+$('next-batch').addEventListener('click', () => selectBatch(selectedBatch + 1));
+$('jump-drift').addEventListener('click', () => selectBatch(ruleChange));
 $('dataset').addEventListener('change', () => {
   $('dataset-note').textContent = $('dataset').value === 'drift'
     ? 'Simulated labels reverse after observation 160.'
-    : 'Real penguin measurements replayed in year order.';
+    : 'Bill length and depth, flipper length and body mass, replayed by year.';
 });
 $('settings').addEventListener('submit', event => {event.preventDefault(); run();});
 new ResizeObserver(() => {if (report) draw(report.history);}).observe($('chart'));

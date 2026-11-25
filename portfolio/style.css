@@ -134,3 +134,50 @@ tr[data-selected=true] { background: #e8f0fa; }
  .metric { padding: 6px; }
  .coursework { float: none; width: min(100%, 250px); margin: 10px 0; }
 }
+
+/* Graph paper frames the experiment. The results stay on a single plotting sheet. */
+:root {
+  --page: #e9eeea;
+  --paper: #fbfcf7;
+  --ink: #192e2a;
+  --muted: #405851;
+  --line: #b4c5bb;
+  --blue: #176255;
+}
+header:not(.sheet-heading) { background: #163c36; border: 0; }
+.masthead a { color: #f2fcf6; }
+.sheet-heading { padding-bottom: 18px; }
+.layout { display: grid; grid-template-columns: minmax(210px, .48fr) minmax(0, 1.52fr); gap: 14px; align-items: start; }
+.controls form { grid-template-columns: minmax(0,1fr); gap: 11px; }
+.controls button { margin-top: 3px; }
+.controls details { margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--line); }
+.plot { background: #fff; }
+.plot canvas { height: clamp(175px, 25vw, 300px); }
+.metric { background: #edf4ee; }
+.primary:hover { background: #10483c; }
+.blue { color: #245594; }
+#chunk-controls > button {
+  border: 1px solid var(--line);
+  background: #f3f7f1;
+  color: var(--ink);
+  padding: .36rem .58rem;
+  font-size: .83rem;
+  cursor: pointer;
+}
+#chunk-controls > button:disabled { opacity: .55; cursor: default; }
+#chunk-controls > button:hover:not(:disabled) { border-color: var(--blue); }
+#batch-strip .rule-change { border-left: 4px solid #aa791f; }
+#batch-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 12px 0 8px;
+  border-block: 1px solid var(--line);
+}
+#batch-steps div { padding: .55rem .65rem; min-width: 0; }
+#batch-steps div + div { border-left: 1px solid var(--line); }
+#batch-steps dt { font-size: .76rem; color: var(--muted); }
+#batch-steps dd { margin: .2rem 0 0; font: 700 .84rem/1.45 var(--mono); }
+@media (max-width: 720px) {
+  .layout { grid-template-columns: minmax(0,1fr); }
+  .controls form { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
