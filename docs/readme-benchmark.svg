@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title detail" width="720" height="165" viewBox="0 0 720 165">
-<title id="title">Palmer Penguins · test-then-train accuracy</title>
-<desc id="detail">Default decision tree 94.4%; Past-majority baseline 44%. Scale begins at zero.</desc>
-<rect width="720" height="165" rx="12" fill="#eef4f8"/>
-<g font-family="system-ui, sans-serif" fill="#172c42"><text x="24" y="31" font-size="19" font-weight="700">Palmer Penguins · test-then-train accuracy</text>
-<text x="24" y="69" font-size="14">Default decision tree</text><rect x="209" y="54" width="394" height="20" rx="4" fill="#d5e2eb"/><rect x="209" y="54" width="371.94" height="20" rx="4" fill="#146c79"/><text x="619" y="69" font-size="14">94.4%</text>
-<text x="24" y="108" font-size="14">Past-majority baseline</text><rect x="209" y="93" width="394" height="20" rx="4" fill="#d5e2eb"/><rect x="209" y="93" width="173.36" height="20" rx="4" fill="#2f5687"/><text x="619" y="108" font-size="14">44%</text>
-<text x="209" y="150" font-size="12">0</text><text x="602" y="150" text-anchor="end" font-size="12">100%</text></g>
-</svg>

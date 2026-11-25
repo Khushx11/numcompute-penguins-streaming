@@ -11,20 +11,19 @@ its own models and pipelines rather than delegating them to scikit-learn.
 ---
 
 
-## Streaming evaluation
+## Follow a chunk through the stream
 
 ```mermaid
-flowchart LR
-    A["Initialise on earlier chunks"]
-    B["Predict the next chunk"]
-    C["Score predictions"]
-    D["Fit on that chunk"]
-    A --> B --> C --> D
+stateDiagram-v2
+    [*] --> Warmup
+    Warmup --> Predict: First 40 observed
+    Predict --> Score: Predictions logged
+    Score --> Update: Reveal current labels
+    Update --> Predict: Next chunk
+    Update --> [*]: End of stream
 ```
 
-![Palmer Penguins · test-then-train accuracy](docs/readme-benchmark.svg)
-
-302 scored observations after the initial 40. The benchmark processes records by year.
+On the Palmer Penguins demo, the default tree scored **94.4%** and the past-majority baseline **44.0%** across **302** scored observations. The ordering keeps each chunk's labels out of its own predictions.
 
 ## What is in the box
 
