@@ -211,7 +211,7 @@ NumCompute-Stream/
 
 The base `numcompute/` package comes from the [original NumCompute group project](https://github.com/jaineel11/NumCompute), completed for Programming for Artificial Intelligence (COMP 5004) at Adelaide University. The original README credits these contributions:
 
-- **Khush Maru** (@Khushx11) implemented `sort_search.py` and `rank.py`, covering sorting, top-k, quickselect, binary search and ranking with ties.
+- **[Khush Bhavin Maru](https://github.com/Khushx11)** implemented `sort_search.py` and `rank.py`, covering sorting, top-k, quickselect, binary search and ranking with ties.
 - **Jaineel Patel** (@jaineel11) contributed `utils.py` and `io.py`.
 - **Harshal Lad** (@Harshal192) contributed `preprocessing.py` and `pipeline.py`.
 - **Vaibhav Patel** (@vaibhavpatel26) contributed `stats.py`, `metrics.py`, `optim.py` and `benchmarking.py`.
