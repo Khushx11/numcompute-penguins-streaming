@@ -59,7 +59,7 @@ Python 3.10+, NumPy, and matplotlib. That is all.
 
 Run the stream, jump to the synthetic rule change, and inspect batch accuracy and retained data.
 
-[Watch the 15-second captioned walkthrough](https://raw.githubusercontent.com/Khushx11/numcompute-penguins-streaming/main/docs/demo/walkthrough.mp4)
+[Watch the 18-second captioned walkthrough](https://raw.githubusercontent.com/Khushx11/numcompute-penguins-streaming/main/docs/demo/walkthrough.mp4)
 
 [![NumCompute stream replay with the first synthetic drift batch selected](docs/demo/preview.png)](https://raw.githubusercontent.com/Khushx11/numcompute-penguins-streaming/main/docs/demo/walkthrough.mp4)
 
